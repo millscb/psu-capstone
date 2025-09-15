@@ -1,3 +1,11 @@
+# Executables and build outputs
+*.exe
+*.dll
+*.pdb
+/build/
+/dist/
+/out/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
