@@ -10,5 +10,5 @@ dependencies:
   - pip:
       - tensorflow
       - torch
-      - gymnasium
+      - gymnasium[classic_control]
       - yfinance
