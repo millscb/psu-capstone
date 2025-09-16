@@ -1,16 +1,19 @@
+import tensorflow as tf
 import gymnasium as gym
 
-def main():
-    env = gym.make("CartPole-v1", render_mode="human")  # requires pygame (installed via classic-control)
-    obs, info = env.reset(seed=42)
-    terminated = truncated = False
-    total_reward = 0.0
-    while not (terminated or truncated):
-        action = env.action_space.sample()  # random policy
-        obs, reward, terminated, truncated, info = env.step(action)
-        total_reward += reward
-    env.close()
-    print(f"Episode reward: {total_reward}")
+#from tensorflow import keras
 
-if __name__ == "__main__":
-    main()
+env = gym.make('CartPole-v1')
+obs = env.reset()
+
+env.render()
+
+print(obs)
+
+inputs = 4 # shape of observation space
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.Dense(5, input_shape=(inputs,), activation='elu'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
