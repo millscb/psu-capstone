@@ -12,3 +12,8 @@ dependencies:
       - torch
       - gymnasium[classic_control]
       - yfinance
+      - matplotlib
+      - jupyterlab
+      - seaborn
+      - scikit-learn
+      - stable-baselines3
