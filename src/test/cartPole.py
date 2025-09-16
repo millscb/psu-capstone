@@ -71,7 +71,7 @@ def discount_and_normalize_rewards(all_rewards, discount_rate):
     return [(discounted_rewards - reward_mean)/reward_std for discounted_rewards in all_discounted_rewards]
 
 
-def train(loss,opt):
+def train(loss,opt,env, ops):
     for iteration in range(n_iterations):
         all_rewards, all_grads = play_multiple_episodes(env,model,loss, n_episode_per_update, n_max_steps)
         all_final_rewards = discount_and_normalize_rewards(all_rewards, discount_rate)
@@ -92,6 +92,8 @@ def train(loss,opt):
             #print(f"Mean gradients for variable {var_index}: {mean_grads.numpy()}")
         opt.apply_gradients(zip(all_mean_grads, model.trainable_variables))
 
+    return model
+
 
 
 
@@ -102,22 +104,22 @@ def train(loss,opt):
 if __name__ == "__main__":
 
   
-    env = gym.make("CartPole-v1", render_mode="human")
+    enviroment = gym.make("CartPole-v1")
 
-    obs, info = env.reset()
+    observation, info = enviroment.reset()
 
     n_inputs = 4
-    n_hidden = 8
+    n_hidden = 4
     n_outputs = 1
-    n_iterations = 200
-    n_episode_per_update = 34
+    n_iterations = 150
+    n_episode_per_update = 10
     n_max_steps = 200
-    discount_rate = 0.98
+    discount_rate = 0.95
 
     model = keras.Sequential(
         [
-            keras.Input(shape=(n_inputs,)),
-            keras.layers.Dense(n_hidden, activation="elu"),
+            keras.layers.Dense(n_hidden, activation="relu", input_shape=[n_inputs]),
+           
             keras.layers.Dense(n_outputs, activation="sigmoid"),
         ]
     )
@@ -125,11 +127,12 @@ if __name__ == "__main__":
     optimizer = keras.optimizers.Adam(learning_rate=0.01)
     loss_fn = keras.losses.BinaryCrossentropy(from_logits=False)
 
-    train(loss_fn,optimizer)
-    # Save the model
-    models_dir = Path("models")
-    models_dir.mkdir(exist_ok=True)
-    model_path = models_dir / "cartpole_policy.keras"
+
+    model = train(loss_fn,optimizer,enviroment, observation)
+
+    print(model.summary())
+
+
   
 
      
