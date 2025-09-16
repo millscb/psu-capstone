@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
     model = keras.Sequential(
         [
-            keras.layers.Dense(n_hidden, activation="relu", input_shape=[n_inputs]),
+            keras.layers.Dense(n_hidden, activation="elu", input_shape=[n_inputs]),
            
             keras.layers.Dense(n_outputs, activation="sigmoid"),
         ]
