@@ -3,7 +3,7 @@ Capstone Project
 
 ## Environment Setup (Conda)
 
-This project uses a local (project-directory) Conda environment defined by `environment.yml` with a `prefix` pointing to `./.venv/rl_env`.
+This project now uses a named Conda environment (`rl_env`) instead of a path `prefix` environment. This simplifies activation and avoids path portability issues on different machines.
 
 ### 1. Install Miniconda (Recommended)
 Download from: https://docs.conda.io/en/latest/miniconda.html (Windows 64-bit, Python 3.11) or use winget (Windows PowerShell):
@@ -23,34 +23,19 @@ Close and reopen the terminal (or run a new VS Code terminal). Verify:
 conda --version
 ```
 
-### 2. Create the Environment
+### 2. Create the Environment (Reinforcement Learning stack)
 
-From the project root (`SWENG480/`):
+From the project root (`SWENG480/`), using the updated `environment-tensorflow.yml` (named env):
 
 ```powershell
-conda env create -f environment.yml
-```
-
-Because `environment.yml` uses a `prefix`, Conda will create the environment at:
-```
-./.venv/rl_env
+conda env create -f environment-tensorflow.yml
 ```
 
 ### 3. Activate the Environment
 
-Activation (path-based):
 ```powershell
-conda activate (Resolve-Path .\.venv\rl_env)
+conda activate rl_env
 ```
-
-If you prefer a named environment (optional):
-1. Edit `environment.yml`: replace the first line `prefix: ./.venv/rl_env` with `name: rl_env`.
-2. Recreate:
-	```powershell
-	conda env remove --name rl_env  # (only if it exists already)
-	conda env create -f environment.yml
-	conda activate rl_env
-	```
 
 ### 4. Verify Core Packages
 
@@ -60,9 +45,9 @@ python -c "import torch, tensorflow, gymnasium, pandas; print('OK')"
 
 ### 5. Updating the Environment
 
-After editing `environment.yml` (adding/removing dependencies):
+After editing `environment-tensorflow.yml` (adding/removing dependencies):
 ```powershell
-conda env update -f environment.yml --prune
+conda env update -f environment-tensorflow.yml --prune
 ```
 
 ### 6. Jupyter Kernel (Optional)
@@ -141,9 +126,35 @@ print(float(proba_left.numpy()[0][0]))
 ### Clean Recreate
 ```powershell
 conda deactivate
-Remove-Item -Recurse -Force .\.venv\rl_env
-conda env create -f environment.yml
-conda activate (Resolve-Path .\.venv\rl_env)
+conda remove -n rl_env --all
+conda env create -f environment-tensorflow.yml
+conda activate rl_env
+```
+
+---
+
+## Additional Optional Environments
+
+Two optional environment YAMLs are provided for specialized HTM / NuPIC work:
+
+| Env | YAML File | Python | Purpose |
+|-----|-----------|--------|---------|
+| rl_env | environment-tensorflow.yml | 3.11 | Main RL + TensorFlow / Torch experimentation |
+| htmcore | environment-htmcore.yml | 3.10 | Modern maintained HTM (htm.core) |
+| nupic36 | environment-nupic.yml | 3.6 | Legacy NuPIC 1.0.5 (only if required) |
+
+Create & activate examples:
+```powershell
+conda env create -f environment-htmcore.yml
+conda activate htmcore
+
+conda env create -f environment-nupic.yml
+conda activate nupic36
+```
+
+Remove legacy env if no longer needed:
+```powershell
+conda remove -n nupic36 --all
 ```
 
 ---
@@ -159,9 +170,9 @@ conda activate (Resolve-Path .\.venv\rl_env)
 ## At a Glance
 
 ```powershell
-# Setup
-conda env create -f environment.yml
-conda activate (Resolve-Path .\.venv\rl_env)
+# Create main RL env
+conda env create -f environment-tensorflow.yml
+conda activate rl_env
 
 # Train
 python .\src\test\cartPole.py --no-render --iterations 50

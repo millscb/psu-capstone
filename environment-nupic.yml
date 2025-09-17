@@ -1,0 +1,26 @@
+# Legacy NuPIC (HTM) environment
+# NOTE: NuPIC 1.0.5 only supports up to Python 3.6. This env is isolated and EOL Python is a security risk.
+# Use ONLY if you specifically need the original NuPIC API. Prefer the modern htm.core alternative when possible.
+# Channels: numenta channel hosts the NuPIC builds; conda-forge provides updated build infra for deps.
+name: nupic36
+channels:
+  - numenta
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.6.*  # NuPIC compatibility
+  - pip
+  - numpy=1.19.*  # Conservative upper bound (NuPIC wheels built against older numpy)
+  - setuptools<60  # Avoid newer build system issues with old packages
+  - wheel
+  - pywin32  # Windows native extensions support
+  - psutil
+  - pip:
+      - nupic==1.0.5
+      # If install fails due to binary issues, consider adding: "--only-binary :all:" via manual pip command
+
+# Post-create test commands (PowerShell):
+#   conda env create -f environment-nupic.yml
+#   conda activate nupic36
+#   python -c "import nupic, pkg_resources; print('NuPIC', nupic.__version__)"
+# If import fails, try forcing a reinstall: pip install --no-cache-dir nupic==1.0.5
