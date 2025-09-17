@@ -8,7 +8,7 @@ dependencies:
   - python=3.10.*  # Stable, broadly supported
   - pip
   - numpy
-  - pybind11  # Helpful for native extension build sanity
+  - pybind11   # Helpful for native extension build sanity
   - cmake      # In case source build is needed
   - wheel
   - setuptools
