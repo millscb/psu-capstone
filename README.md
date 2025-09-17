@@ -133,54 +133,16 @@ conda activate rl_env
 
 ---
 
-## Additional Optional Environments
+## Additional Optional Environment
 
-Two optional environment YAMLs are provided for specialized HTM / NuPIC work:
+We provide one optional environment for modern HTM experiments:
 
 | Env | YAML File | Python | Purpose |
 |-----|-----------|--------|---------|
 | rl_env | environment-tensorflow.yml | 3.11 | Main RL + TensorFlow / Torch experimentation |
 | htmcore | environment-htmcore.yml | 3.10 | Modern maintained HTM (htm.core) |
-| nupic36 | environment-nupic.yml | 3.6 | Legacy NuPIC 1.0.5 (only if required) |
 
-Create & activate examples:
-```powershell
-conda env create -f environment-htmcore.yml
-conda activate htmcore
-
-conda env create -f environment-nupic.yml
-conda activate nupic36
-```
-
-Remove legacy env if no longer needed:
-```powershell
-conda remove -n nupic36 --all
-```
-
-### NuPIC (legacy) quickstart
-
-NuPIC is in maintenance mode and can be fragile on modern systems. We provide a best-effort setup:
-
-```powershell
-conda env create -f environment-nupic.yml
-conda activate nupic36
-python -m pip install --upgrade pip
-pip install nupic==1.0.5
-
-# Smoke test
-python -c "import nupic; print('NuPIC version:', nupic.__version__)"
-python .\src\nupic_smoke_test.py
-```
-
-If installation fails (missing wheel / ABI errors):
-```powershell
-pip install numpy==1.18.5 --force-reinstall
-pip install --no-cache-dir --force-reinstall nupic==1.0.5
-```
-
-More details and Windows guidance: see `BUILD-NUPIC.md`.
-
-Recommended modern alternative:
+Create & activate example:
 ```powershell
 conda env create -f environment-htmcore.yml
 conda activate htmcore
