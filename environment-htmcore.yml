@@ -1,19 +1,25 @@
 # Modern HTM (Hierarchical Temporal Memory) environment using htm.core
 # htm.core supports newer Python versions (>=3.8 typically). This avoids legacy NuPIC Python 3.6 constraint.
+#https://github.com/htm-community/htm.core
+
 name: htmcore
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.10.*  # Stable, broadly supported
+  - python=3.9.*  
   - pip
   - numpy
-  - pybind11   # Helpful for native extension build sanity
-  - cmake      # In case source build is needed
+  - cmake
   - wheel
   - setuptools
   - pip:
-      - htm.core  # Current maintained package
+      - tensorflow
+      - torch
+      - gymnasium[classic_control]
+      - yfinance
+      
+
 
 # Create & test:
 #   conda env create -f environment-htmcore.yml
