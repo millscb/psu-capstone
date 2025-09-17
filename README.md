@@ -157,6 +157,36 @@ Remove legacy env if no longer needed:
 conda remove -n nupic36 --all
 ```
 
+### NuPIC (legacy) quickstart
+
+NuPIC is in maintenance mode and can be fragile on modern systems. We provide a best-effort setup:
+
+```powershell
+conda env create -f environment-nupic.yml
+conda activate nupic36
+python -m pip install --upgrade pip
+pip install nupic==1.0.5
+
+# Smoke test
+python -c "import nupic; print('NuPIC version:', nupic.__version__)"
+python .\src\nupic_smoke_test.py
+```
+
+If installation fails (missing wheel / ABI errors):
+```powershell
+pip install numpy==1.18.5 --force-reinstall
+pip install --no-cache-dir --force-reinstall nupic==1.0.5
+```
+
+More details and Windows guidance: see `BUILD-NUPIC.md`.
+
+Recommended modern alternative:
+```powershell
+conda env create -f environment-htmcore.yml
+conda activate htmcore
+python -c "import htm; print('htm.core version:', htm.__version__)"
+```
+
 ---
 
 ## Optional Improvements (Not Yet Implemented)
