@@ -164,18 +164,28 @@ if __name__ == "__main__":
     n_inputs = 4
     n_hidden = [8, 4]
     n_outputs = 1
-    n_iterations = 150
-    n_episode_per_update = 10
-    n_max_steps = 200
-    discount_rate = 0.95
+    n_iterations = args.iterations
+    n_episode_per_update = args.episodes_per_update
+    n_max_steps = args.max_steps
+    discount_rate = args.discount
 
-    model = keras.Sequential(
-        [
-            keras.layers.Dense(n_hidden, activation="relu", input_shape=[n_inputs]),
-           
-            keras.layers.Dense(n_outputs, activation="sigmoid"),
-        ]
-    )
+    # Build or load model
+    if args.load_model:
+        load_path = Path(args.load_model)
+        if not load_path.is_absolute():
+            load_path = (Path(__file__).resolve().parents[2] / load_path).resolve()
+        if not load_path.exists():
+            raise FileNotFoundError(f"--load-model path not found: {load_path}")
+        print(f"Loading existing model from {load_path}")
+        model = keras.models.load_model(load_path)
+    else:
+        model = keras.Sequential(
+            [
+                keras.layers.Dense(n_hidden[0], activation="elu", input_shape=[n_inputs]),
+                keras.layers.Dense(n_hidden[1], activation="relu"),
+                keras.layers.Dense(n_outputs, activation="sigmoid"),
+            ]
+        )
 
     # If resuming, keep optimizer fresh unless you need stateful resume; for full resume
     # you'd have to have saved with optimizer state (which .keras does). We can rebuild
