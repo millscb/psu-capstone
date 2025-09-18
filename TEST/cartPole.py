@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from tensorflow import keras  # type: ignore
 from pathlib import Path
+import time
 
 
 def play_one_step(env, model, obs):
@@ -82,6 +83,48 @@ def discount_and_normalize_rewards(all_rewards, discount_rate):
     return [(discounted_rewards - reward_mean)/reward_std for discounted_rewards in all_discounted_rewards]
 
 
+def select_action(model, obs, sample: bool = False) -> int:
+    """Choose action 0 (left) or 1 (right) from the policy output.
+
+    If sample=True, sample from Bernoulli(p_left); otherwise, threshold at 0.5.
+    """
+    x = tf.convert_to_tensor(obs, dtype=tf.float32)
+    x = tf.reshape(x, (1, -1))
+    p_left = float(model(x)[0, 0].numpy())
+    if sample:
+        return 0 if np.random.rand() < p_left else 1
+    return 0 if p_left >= 0.5 else 1
+
+
+def watch(model, episodes: int = 3, fps: int = 60, sample: bool = False, max_steps_per_episode: int | None = None):
+    """Render the trained policy for multiple episodes.
+
+    CartPole-v1 has a built-in time limit (500 steps). This function continues across
+    episodes so you can watch for longer than your training horizon.
+    """
+    env = gym.make("CartPole-v1", render_mode="human")
+    delay = 1.0 / fps if fps and fps > 0 else 0.0
+    try:
+        for ep in range(episodes):
+            obs, info = env.reset()
+            done = False
+            steps = 0
+            ep_reward = 0.0
+            while not done:
+                action = select_action(model, obs, sample=sample)
+                obs, reward, terminated, truncated, info = env.step(action)
+                ep_reward += float(reward)
+                steps += 1
+                done = bool(terminated or truncated)
+                if delay:
+                    time.sleep(delay)
+                if max_steps_per_episode and steps >= max_steps_per_episode:
+                    break
+            print(f"Watch episode {ep+1}: steps={steps}, reward={ep_reward:.1f}")
+    finally:
+        env.close()
+
+
 def train(
     model,
     env,
@@ -154,63 +197,91 @@ if __name__ == "__main__":
     parser.add_argument("--no-render", action="store_true", help="Disable environment rendering")
     parser.add_argument("--save-name", type=str, default="cartpole_policy.keras", help="Filename inside models/ directory")
     parser.add_argument("--load-model", type=str, default=None, help="Path to existing .keras model to continue training (relative or absolute)")
+    parser.add_argument("--watch", action="store_true", help="Render watch session after training")
+    parser.add_argument("--watch-episodes", type=int, default=3, help="Episodes to watch")
+    parser.add_argument("--fps", type=int, default=60, help="Render FPS during watch (0 = max speed)")
+    parser.add_argument("--stochastic", action="store_true", help="Sample actions (stochastic) instead of threshold 0.5")
+    parser.add_argument("--watch-max-steps", type=int, default=0, help="Cap steps per watch episode (0 = env limit)")
     args = parser.parse_args()
 
-    render_mode = None if args.no_render else "human"
-    enviroment = gym.make("CartPole-v1", render_mode=render_mode)
-    observation, info = enviroment.reset()
-
-    # Hyperparameters / architecture
-    n_inputs = 4
-    n_hidden = [8, 4]
-    n_outputs = 1
-    n_iterations = args.iterations
-    n_episode_per_update = args.episodes_per_update
-    n_max_steps = args.max_steps
-    discount_rate = args.discount
-
-    # Build or load model
-    if args.load_model:
-        load_path = Path(args.load_model)
-        if not load_path.is_absolute():
-            load_path = (Path(__file__).resolve().parents[2] / load_path).resolve()
+    # If watching, skip training entirely
+    if args.watch:
+        base_dir = Path(__file__).resolve().parents[1]
+        if args.load_model:
+            load_path = Path(args.load_model)
+            if not load_path.is_absolute():
+                load_path = (base_dir / load_path).resolve()
+        else:
+            load_path = (base_dir / "models" / args.save_name).resolve()
         if not load_path.exists():
-            raise FileNotFoundError(f"--load-model path not found: {load_path}")
-        print(f"Loading existing model from {load_path}")
+            raise FileNotFoundError(
+                f"No model found to watch. Provide --load-model or ensure '{load_path}' exists."
+            )
+        print(f"Watching model from {load_path}")
         model = keras.models.load_model(load_path)
+        watch(
+            model,
+            episodes=args.watch_episodes,
+            fps=args.fps,
+            sample=args.stochastic,
+            max_steps_per_episode=(args.watch_max_steps or None),
+        )
     else:
-        model = keras.Sequential(
-            [
-                keras.layers.Dense(n_hidden[0], activation="elu", input_shape=[n_inputs]),
-                keras.layers.Dense(n_hidden[1], activation="relu"),
-                keras.layers.Dense(n_outputs, activation="sigmoid"),
-            ]
+        render_mode = None if args.no_render else "human"
+        enviroment = gym.make("CartPole-v1", render_mode=render_mode)
+        observation, info = enviroment.reset()
+
+        # Hyperparameters / architecture
+        n_inputs = 4
+        n_hidden = [8, 4]
+        n_outputs = 1
+        n_iterations = args.iterations
+        n_episode_per_update = args.episodes_per_update
+        n_max_steps = args.max_steps
+        discount_rate = args.discount
+
+        # Build or load model
+        if args.load_model:
+            load_path = Path(args.load_model)
+            if not load_path.is_absolute():
+                load_path = (Path(__file__).resolve().parents[1] / load_path).resolve()
+            if not load_path.exists():
+                raise FileNotFoundError(f"--load-model path not found: {load_path}")
+            print(f"Loading existing model from {load_path}")
+            model = keras.models.load_model(load_path)
+        else:
+            model = keras.Sequential(
+                [
+                    keras.layers.Dense(n_hidden[0], activation="elu", input_shape=[n_inputs]),
+                    keras.layers.Dense(n_hidden[1], activation="relu"),
+                    keras.layers.Dense(n_outputs, activation="sigmoid"),
+                ]
+            )
+
+        # If resuming, keep optimizer fresh unless you need stateful resume; for full resume
+        # you'd have to have saved with optimizer state (which .keras does). We can rebuild
+        # and recompile; gradients do not require compile here because we use custom tape.
+        optimizer = keras.optimizers.Adam(learning_rate=0.01)
+
+        model = train(
+            model,
+            enviroment,
+            optimizer,
+            n_iterations,
+            n_episode_per_update,
+            n_max_steps,
+            discount_rate,
+            render=not args.no_render,
         )
 
-    # If resuming, keep optimizer fresh unless you need stateful resume; for full resume
-    # you'd have to have saved with optimizer state (which .keras does). We can rebuild
-    # and recompile; gradients do not require compile here because we use custom tape.
-    optimizer = keras.optimizers.Adam(learning_rate=0.01)
+        model.summary()
 
-    model = train(
-        model,
-        enviroment,
-        optimizer,
-        n_iterations,
-        n_episode_per_update,
-        n_max_steps,
-        discount_rate,
-        render=not args.no_render,
-    )
-
-    model.summary()
-
-    # === Simple single-file save ===
-    models_dir = Path(__file__).resolve().parents[2] / "models"
-    models_dir.mkdir(parents=True, exist_ok=True)
-    simple_path = models_dir / args.save_name
-    model.save(simple_path)
-    print(f"Model saved to: {simple_path}")
+        # === Simple single-file save ===
+        models_dir = Path(__file__).resolve().parents[1] / "models"
+        models_dir.mkdir(parents=True, exist_ok=True)
+        simple_path = models_dir / args.save_name
+        model.save(simple_path)
+        print(f"Model saved to: {simple_path}")
 
 
   
