@@ -17,3 +17,5 @@ dependencies:
       - pdoc
       - flake8
       - black
+      - randomname
+      
