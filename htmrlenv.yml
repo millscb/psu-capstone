@@ -1,0 +1,19 @@
+name: htmrlenv
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - numpy           
+  - pandas          
+  - pip:
+      - tensorflow
+      - keras
+      - gymnasium[classic_control]
+      - matplotlib         
+      - scikit-learn
+      - stable-baselines3
+      - pdoc
+      - flake8
+      - black

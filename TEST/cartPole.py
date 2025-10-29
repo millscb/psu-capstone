@@ -1,4 +1,5 @@
 import os
+
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # Reduce TF verbosity
 
 import gymnasium as gym
@@ -23,7 +24,9 @@ def play_one_step(env, model, obs):
         x = tf.convert_to_tensor(obs, dtype=tf.float32)
         x = tf.reshape(x, (1, -1))
         left_proba = model(x)  # shape (1,1)
-        action_left_bool = tf.random.uniform(tf.shape(left_proba)) < left_proba  # bool (1,1)
+        action_left_bool = (
+            tf.random.uniform(tf.shape(left_proba)) < left_proba
+        )  # bool (1,1)
         # Probability of chosen action:
         prob_action = tf.where(action_left_bool, left_proba, 1.0 - left_proba)
         log_prob = tf.math.log(prob_action + 1e-8)
@@ -48,8 +51,8 @@ def play_multiple_episodes(env, model, episodes, max_steps, render=True):
         obs, info = env.reset()
 
         print(f"Episode {episode+1} starting...")
-        #print(obs)
-                
+        # print(obs)
+
         for step in range(max_steps):
             obs, reward, done, grads = play_one_step(env, model, obs)
             current_rewards.append(reward)
@@ -62,25 +65,30 @@ def play_multiple_episodes(env, model, episodes, max_steps, render=True):
 
         all_rewards.append(current_rewards)
         all_grads.append(current_grads)
-    
+
     return all_rewards, all_grads
-       
 
 
 def discount_rewards(rewards, discount_rate):
     discounted = np.array(rewards)
-    for step in range(len(rewards)-2, -1, -1):
-        discounted[step] += discounted[step+1] * discount_rate
+    for step in range(len(rewards) - 2, -1, -1):
+        discounted[step] += discounted[step + 1] * discount_rate
 
     return discounted
 
+
 def discount_and_normalize_rewards(all_rewards, discount_rate):
-    all_discounted_rewards = [discount_rewards(rewards, discount_rate) for rewards in all_rewards]
+    all_discounted_rewards = [
+        discount_rewards(rewards, discount_rate) for rewards in all_rewards
+    ]
     flat_rewards = np.concatenate(all_discounted_rewards)
     reward_mean = flat_rewards.mean()
     reward_std = flat_rewards.std()
 
-    return [(discounted_rewards - reward_mean)/reward_std for discounted_rewards in all_discounted_rewards]
+    return [
+        (discounted_rewards - reward_mean) / reward_std
+        for discounted_rewards in all_discounted_rewards
+    ]
 
 
 def select_action(model, obs, sample: bool = False) -> int:
@@ -96,7 +104,13 @@ def select_action(model, obs, sample: bool = False) -> int:
     return 0 if p_left >= 0.5 else 1
 
 
-def watch(model, episodes: int = 3, fps: int = 60, sample: bool = False, max_steps_per_episode: int | None = None):
+def watch(
+    model,
+    episodes: int = 3,
+    fps: int = 60,
+    sample: bool = False,
+    max_steps_per_episode: int | None = None,
+):
     """Render the trained policy for multiple episodes.
 
     CartPole-v1 has a built-in time limit (500 steps). This function continues across
@@ -181,27 +195,65 @@ def train(
     return model
 
 
-
-
-
-
-
-
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Train and save a CartPole policy gradient model.")
-    parser.add_argument("--iterations", type=int, default=1000, help="Training iterations (policy updates)")
-    parser.add_argument("--episodes-per-update", type=int, default=10, help="Episodes collected per update")
-    parser.add_argument("--max-steps", type=int, default=200, help="Max steps per episode")
-    parser.add_argument("--discount", type=float, default=0.95, help="Discount rate (gamma)")
-    parser.add_argument("--no-render", action="store_true", help="Disable environment rendering")
-    parser.add_argument("--save-name", type=str, default="cartpole_policy.keras", help="Filename inside models/ directory")
-    parser.add_argument("--load-model", type=str, default=None, help="Path to existing .keras model to continue training (relative or absolute)")
-    parser.add_argument("--watch", action="store_true", help="Render watch session after training")
-    parser.add_argument("--watch-episodes", type=int, default=3, help="Episodes to watch")
-    parser.add_argument("--fps", type=int, default=60, help="Render FPS during watch (0 = max speed)")
-    parser.add_argument("--stochastic", action="store_true", help="Sample actions (stochastic) instead of threshold 0.5")
-    parser.add_argument("--watch-max-steps", type=int, default=0, help="Cap steps per watch episode (0 = env limit)")
+
+    parser = argparse.ArgumentParser(
+        description="Train and save a CartPole policy gradient model."
+    )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=1000,
+        help="Training iterations (policy updates)",
+    )
+    parser.add_argument(
+        "--episodes-per-update",
+        type=int,
+        default=10,
+        help="Episodes collected per update",
+    )
+    parser.add_argument(
+        "--max-steps", type=int, default=200, help="Max steps per episode"
+    )
+    parser.add_argument(
+        "--discount", type=float, default=0.95, help="Discount rate (gamma)"
+    )
+    parser.add_argument(
+        "--no-render", action="store_true", help="Disable environment rendering"
+    )
+    parser.add_argument(
+        "--save-name",
+        type=str,
+        default="cartpole_policy.keras",
+        help="Filename inside models/ directory",
+    )
+    parser.add_argument(
+        "--load-model",
+        type=str,
+        default=None,
+        help="Path to existing .keras model to continue training (relative or absolute)",
+    )
+    parser.add_argument(
+        "--watch", action="store_true", help="Render watch session after training"
+    )
+    parser.add_argument(
+        "--watch-episodes", type=int, default=3, help="Episodes to watch"
+    )
+    parser.add_argument(
+        "--fps", type=int, default=60, help="Render FPS during watch (0 = max speed)"
+    )
+    parser.add_argument(
+        "--stochastic",
+        action="store_true",
+        help="Sample actions (stochastic) instead of threshold 0.5",
+    )
+    parser.add_argument(
+        "--watch-max-steps",
+        type=int,
+        default=0,
+        help="Cap steps per watch episode (0 = env limit)",
+    )
     args = parser.parse_args()
 
     # If watching, skip training entirely
@@ -252,7 +304,9 @@ if __name__ == "__main__":
         else:
             model = keras.Sequential(
                 [
-                    keras.layers.Dense(n_hidden[0], activation="elu", input_shape=[n_inputs]),
+                    keras.layers.Dense(
+                        n_hidden[0], activation="elu", input_shape=[n_inputs]
+                    ),
                     keras.layers.Dense(n_hidden[1], activation="relu"),
                     keras.layers.Dense(n_outputs, activation="sigmoid"),
                 ]
@@ -282,18 +336,3 @@ if __name__ == "__main__":
         simple_path = models_dir / args.save_name
         model.save(simple_path)
         print(f"Model saved to: {simple_path}")
-
-
-  
-
-     
-        
-
-       
-       
-
-  
-
-
- 
-   
