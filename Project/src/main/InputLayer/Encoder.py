@@ -1,3 +1,5 @@
+
+
 """Encoder module :: contains the Encoder class to encode input data."""
 
 class Encoder:
