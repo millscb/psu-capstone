@@ -1,7 +1,15 @@
 #!/bin/bash
-export PYTHONPATH=$(pwd)/src
+set -euo pipefail
+
+export PYTHONPATH="$(pwd)/src"
 echo "PYTHONPATH: $PYTHONPATH" >&2
-.venv/bin/python -c "import sys; print('sys.path:', sys.path[:3])" >&2
-.venv/bin/python -c "from psu_capstone.encoder_layer.rdse import RDSEParameters; print('Import works')" >&2
-.venv/bin/python -m flake8 . --config=.flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.git,.venv,htmrl_env,.pytest_cache,notebooks,reports -v
-.venv/bin/python -m flake8 . --config=.flake8 --count --show-source --max-complexity=10 --statistics --exclude=.git,.venv,htmrl_env,.pytest_cache,notebooks,reports
+
+if [ -x ".venv/bin/python" ] && .venv/bin/python -m flake8 --version >/dev/null 2>&1; then
+  PYTHON_BIN=".venv/bin/python"
+else
+  PYTHON_BIN="$(command -v python3 || command -v python)"
+fi
+
+"$PYTHON_BIN" -c "import sys; print('sys.path:', sys.path[:3])" >&2
+"$PYTHON_BIN" -m flake8 . --config=.flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.git,.venv,htmrl_env,.pytest_cache,notebooks,reports -v
+"$PYTHON_BIN" -m flake8 . --config=.flake8 --count --show-source --max-complexity=10 --statistics --exclude=.git,.venv,htmrl_env,.pytest_cache,notebooks,reports
