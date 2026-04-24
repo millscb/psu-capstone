@@ -32,10 +32,8 @@ repos:
         exclude: ^htmrl_env/
       - id: python-docstrings
         name: Python Docstring Checks
-        entry: make lint-docs
+        entry: bash -c 'PYTHONPATH=src make lint-docs'
         pass_filenames: false
         types: [python]
         language: system
-        env:
-          PYTHONPATH: src
         exclude: ^(htmrl_env/|tests/)
