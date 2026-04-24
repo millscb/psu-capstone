@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from psu_capstone.environment.env_adapter import EnvAdapter
 from psu_capstone.environment.fin_gym import FinGym
@@ -74,8 +75,5 @@ def test_env_adapter_rejects_kwargs_with_env_instance() -> None:
     )
     env = FinGym(data_source=frame, target_column="target")
 
-    try:
+    with pytest.raises(ValueError, match="gym_kwargs"):
         _ = EnvAdapter(env, render_mode="human")
-        assert False, "Expected ValueError when kwargs are passed with env instance"
-    except ValueError as exc:
-        assert "gym_kwargs" in str(exc)

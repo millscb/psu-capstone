@@ -172,8 +172,8 @@ class Agent:
         kwargs = {"device": "cpu"}
         if hasattr(self, "_ppo_kwargs"):
             kwargs.update(self._ppo_kwargs)
-        PPO = _import_ppo()
-        self._ppo_model = PPO.load(model_path, env=env, **kwargs)
+        ppo_cls = _import_ppo()
+        self._ppo_model = ppo_cls.load(model_path, env=env, **kwargs)
         self._logger.info("PPO model loaded from %s.", model_path)
 
     def _get_ppo_model_path(self) -> str:
@@ -197,15 +197,15 @@ class Agent:
 
         env = self._adapter._env
         kwargs = {"device": "cpu", **self._ppo_kwargs}
-        PPO = _import_ppo()
+        ppo_cls = _import_ppo()
         model_path = self._get_ppo_model_path()
         if os.path.exists(model_path):
             self._logger.info(f"Loading pre-trained PPO model from {model_path}")
-            return PPO.load(model_path, env=env, **kwargs)
+            return ppo_cls.load(model_path, env=env, **kwargs)
         self._logger.info(
             f"No pre-trained PPO model found for env {model_path}; creating new PPO model."
         )
-        return PPO(self._ppo_policy, env, verbose=0, **kwargs)
+        return ppo_cls(self._ppo_policy, env, verbose=0, **kwargs)
 
     def _select_ppo_action(self, obs: Any) -> Any:
         """Select an action from the configured PPO-style policy model."""
