@@ -1,0 +1,65 @@
+@startuml
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 6
+skinparam participantPadding 12
+skinparam BoxPadding 10
+
+participant "Caller\n(run_local_session)" as Caller
+participant "Agent" as Agent
+participant "Brain" as Brain
+participant "InputField / ColumnField\n/ OutputField" as Fields
+participant "EnvAdapter" as Adapter
+participant "Gym Env" as Gym
+
+== Agent.step(learn=True) ==
+
+Caller -> Agent : step(learn=True)
+
+group Observation path (current obs → Brain SDR)
+  Agent -> Brain : step(current_inputs, learn=True)
+  Brain -> Fields  : encode_only(inputs)\n  [InputField.encode per obs field]
+  Fields --> Brain : SDRs written to input columns
+  Brain -> Fields  : compute_only(learn=True)\n  [ColumnField.compute → SP + TM]
+  Fields --> Brain : active columns / predictive cells
+  Brain -> Fields  : activate_apical_segments()\n  [ColumnField.apical_compute – Go/NoGo]
+  Fields --> Brain
+  Brain -> Fields  : generate_behavior()\n  [OutputField.compute + decode]
+  Fields --> Brain : {action_output: {action, confidence}}
+  Brain --> Agent  : behavior dict
+end
+
+group Action selection (brain_outputs → gym action)
+  Agent -> Agent : select_action(obs, brain_outputs)
+  note right
+    policy_mode dispatch:
+    • brain  → _select_brain_action_from_outputs
+    • q_table → _select_q_action (ε-greedy)
+    • ppo    → _select_ppo_action
+  end note
+  Agent --> Agent : action value
+end
+
+group Action execution (action → next obs / reward)
+  Agent -> Adapter : step_bridge(action)
+  Adapter -> Adapter : action_to_inputs(action)\n  [raw → {action: value}]
+  Adapter -> Adapter : step(action)\n  [Box space: clip + reshape]
+  Adapter -> Gym : env.step(action)
+  Gym --> Adapter : next_obs, reward, terminated,\ntruncated, info
+  Adapter -> Adapter : observation_to_inputs(next_obs)\n  [raw obs → flat Brain-ready inputs]
+  Adapter --> Agent : bridge {obs, inputs, reward,\nterminated, truncated, info}
+end
+
+group Q-learning update (reward → Q-table)
+  Agent -> Agent : update(obs, action, reward, next_obs, done)
+  note right
+    brain mode → Brain.rl_policy_update(reward)
+    q_table    → TD-error update on Q row
+    ppo        → no-op (PPO manages its own lifecycle)
+  end note
+end
+
+Agent -> Agent : cache next_obs, next_inputs\n(used by next Agent.step call)
+Agent --> Caller : transition dict\n{obs, inputs, action, next_obs,\nnext_inputs, reward, terminated,\ntruncated, info}
+
+@enduml

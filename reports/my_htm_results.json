@@ -1,0 +1,23 @@
+{
+  "dataset": "/home/millscb/repos/htmrl/data/concat_ESData.xlsx",
+  "policy_mode": "brain",
+  "episodes": 5,
+  "max_steps": 1000,
+  "rows_used": 104178,
+  "episode_rewards": [
+    -0.05903734111267453,
+    -0.05304805849295522,
+    -0.05569130014135565,
+    -0.056573469319589426,
+    -0.046264230613935024
+  ],
+  "episode_steps": [
+    1000,
+    1000,
+    1000,
+    1000,
+    1000
+  ],
+  "mean_reward": -0.054122879936101966,
+  "best_reward": -0.046264230613935024
+}

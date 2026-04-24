@@ -1,0 +1,22 @@
+{
+  "env_id": "CartPole-v1",
+  "policy_mode": "brain",
+  "episodes": 5,
+  "max_steps_per_episode": 10,
+  "episode_rewards": [
+    9.0,
+    8.0,
+    9.0,
+    8.0,
+    8.0
+  ],
+  "episode_steps": [
+    9,
+    8,
+    9,
+    8,
+    8
+  ],
+  "mean_reward": 8.4,
+  "best_reward": 9.0
+}

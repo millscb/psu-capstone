@@ -1,0 +1,14 @@
+{
+  "env_id": "TradingEnv",
+  "policy_mode": "brain",
+  "episodes": 1,
+  "max_steps_per_episode": 1000,
+  "episode_rewards": [
+    -0.6038586463633481
+  ],
+  "episode_steps": [
+    1000
+  ],
+  "mean_reward": -0.6038586463633481,
+  "best_reward": -0.6038586463633481
+}

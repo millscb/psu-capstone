@@ -1,0 +1,22 @@
+{
+  "env_id": "MountainCar-v0",
+  "policy_mode": "brain",
+  "episodes": 5,
+  "max_steps_per_episode": 10,
+  "episode_rewards": [
+    -10.0,
+    -10.0,
+    -10.0,
+    -10.0,
+    -10.0
+  ],
+  "episode_steps": [
+    10,
+    10,
+    10,
+    10,
+    10
+  ],
+  "mean_reward": -10.0,
+  "best_reward": -10.0
+}

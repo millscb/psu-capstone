@@ -1,0 +1,32 @@
+{
+  "env_id": "FrozenLake-v1",
+  "policy_mode": "ppo",
+  "episodes": 10,
+  "max_steps_per_episode": 200,
+  "episode_rewards": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "episode_steps": [
+    2,
+    4,
+    4,
+    2,
+    2,
+    4,
+    4,
+    6,
+    8,
+    4
+  ],
+  "mean_reward": 0.0,
+  "best_reward": 0.0
+}

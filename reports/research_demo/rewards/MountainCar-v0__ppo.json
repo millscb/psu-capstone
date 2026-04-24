@@ -1,0 +1,32 @@
+{
+  "env_id": "MountainCar-v0",
+  "policy_mode": "ppo",
+  "episodes": 10,
+  "max_steps_per_episode": 200,
+  "episode_rewards": [
+    -200.0,
+    -200.0,
+    -200.0,
+    -200.0,
+    -200.0,
+    -200.0,
+    -200.0,
+    -200.0,
+    -200.0,
+    -200.0
+  ],
+  "episode_steps": [
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "mean_reward": -200.0,
+  "best_reward": -200.0
+}
