@@ -8,6 +8,7 @@ without needing to interact with the Brain's internal fields directly.
 from __future__ import annotations
 
 import io
+import pickle
 import sys
 from dataclasses import asdict
 from datetime import datetime
@@ -16,12 +17,14 @@ from typing import Any, cast
 
 import numpy as np
 
-import grapher
 import psu_capstone.encoder_layer as el
+from psu_capstone.agent_layer.pullin.field_base import Field
 from psu_capstone.agent_layer.pullin.pullin_brain import Brain
-from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, Field, InputField, OutputField
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
+from psu_capstone.agent_layer.pullin.sungur import ValueField
 from psu_capstone.encoder_layer.base_encoder import ParameterMarker
 from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
+from psu_capstone.input_layer.input_handler import InputHandler
 from psu_capstone.log import get_logger
 
 # Rebind encoder parameter types locally so callers can use short names without
@@ -43,7 +46,7 @@ class Trainer:
         pretrain_dataset: dict | None = None,
         pretrain_steps: int = 0,
     ) -> Brain:
-        """Build a Brain that matches the adapter's observation/action          schema,      with optional pre-training."""
+        """Build a Brain that matches the adapter's observation/action schema, with optional pre-training."""
         logger = get_logger("Trainer.build_brain_for_env")
         reset_bridge = adapter.reset_bridge()
         input_names = list(reset_bridge["inputs"].keys())
@@ -126,16 +129,41 @@ class Trainer:
             "column_column",
             num_columns=config.input_size,
             cells_per_column=config.cells_per_column,
+            non_spatial=getattr(config, "non_spatial", False),
+            non_temporal=getattr(config, "non_temporal", False),
         )
         logger.info(
             f"Added column_column field (num_columns={config.input_size}, cells_per_column={config.cells_per_column})."
         )
 
         trainer_brain = self.main_brain
-        remapped_fields = {name: trainer_brain.fields[f"{name}_input"] for name in input_names}
+        column_field = cast(ColumnField, trainer_brain.fields["column_column"])
+        go_field = ValueField(
+            input_fields=[column_field],
+            num_columns=config.input_size,
+            non_spatial=getattr(config, "non_spatial", False),
+            non_temporal=getattr(config, "non_temporal", False),
+            cells_per_column=config.cells_per_column,
+        )
+        nogo_field = ValueField(
+            input_fields=[column_field],
+            num_columns=config.input_size,
+            non_spatial=getattr(config, "non_spatial", False),
+            non_temporal=getattr(config, "non_temporal", False),
+            cells_per_column=config.cells_per_column,
+        )
+
+        column_field.go_field = go_field
+        column_field.nogo_field = nogo_field
+
+        remapped_fields: dict[str, Any] = {
+            name: trainer_brain.fields[f"{name}_input"] for name in input_names
+        }
         remapped_fields["reward"] = trainer_brain.fields["reward_input"]
         remapped_fields["action_output"] = trainer_brain.fields["action_output"]
-        remapped_fields["column"] = trainer_brain.fields["column_column"]
+        remapped_fields["column"] = column_field
+        remapped_fields["go"] = go_field
+        remapped_fields["nogo"] = nogo_field
 
         logger.info(f"Brain fields: {list(remapped_fields.keys())}")
         logger.info("Brain construction complete.")
@@ -237,6 +265,17 @@ class Trainer:
         if brain not in self._brains:
             self._brains.append(brain)
 
+    def _sync_trainer_fields_from_brain(self, brain: Brain) -> None:
+        """Align cached field lists with ``brain.fields`` (e.g. after :meth:`load_brain`)."""
+
+        self._trainer_input_fields = [f for f in brain.fields.values() if isinstance(f, InputField)]
+        self._trainer_output_fields = [
+            f for f in brain.fields.values() if isinstance(f, OutputField)
+        ]
+        self._trainer_column_fields = [
+            f for f in brain.fields.values() if isinstance(f, ColumnField)
+        ]
+
     def _setup_io_fields(
         self,
         fields: list[tuple[str, int, ParameterMarker]],
@@ -246,6 +285,7 @@ class Trainer:
 
         Args:
             fields: A list of tuples containing field name, field size, and encoder parameters.
+            possible_actions: Optional action values to pre-register on output encoders.
 
         Raises:
             ValueError: If unsupported encoder parameter type is provided.
@@ -275,16 +315,15 @@ class Trainer:
                 FourierEncoderParameters,
                 GeospatialParameters,
                 CoordinateParameters,
-                ScalarEncoderParameters,
             )
             if isinstance(param, encoder_param_types):
-                encoder_kwargs = asdict(param)
+                pass
             else:
                 raise ValueError(
                     f"Encoder parameter {param} is not a supported encoder parameter dataclass instance."
                 )
             created_encoder = cast(
-                el.BaseEncoder, self._encoder_factory.create_encoder(encoder_type, encoder_kwargs)
+                el.BaseEncoder, self._encoder_factory.create_encoder(encoder_type, asdict(param))
             )
             encoder_params = param
 
@@ -456,6 +495,7 @@ class Trainer:
 
         Args:
             fields: A list of tuples containing field name, field size, and encoder parameters.
+            possible_actions: Optional action values to pre-register on output encoders.
 
                 Example:
                 fields = [
@@ -510,6 +550,9 @@ class Trainer:
                     "At least one input field must be defined before creating an OutputField."
                 )
             input_field = self._trainer_input_fields[0]
+            # Support both OutputField signatures used in this repository:
+            # - New: OutputField(input_field=..., encoder_params=..., size=...)
+            # - Legacy: OutputField(size=..., motor_action=...)
             field = OutputField(input_field=input_field, encoder_params=encoder_params, size=size)
             field.name = name
             # Register all possible actions with the encoder for OutputField
@@ -528,7 +571,14 @@ class Trainer:
         else:
             raise ValueError("Output field name must end with '_output'.")
 
-    def add_column_field(self, name: str, num_columns: int, cells_per_column: int) -> None:
+    def add_column_field(
+        self,
+        name: str,
+        num_columns: int,
+        cells_per_column: int,
+        non_spatial: bool = False,
+        non_temporal: bool = False,
+    ) -> None:
         """Add a column field to the Brain."""
 
         if self._main_brain is None:
@@ -537,7 +587,8 @@ class Trainer:
         if name.endswith("_column"):
             field = ColumnField(
                 input_fields=self._trainer_input_fields,
-                non_spatial=False,
+                non_spatial=non_spatial,
+                non_temporal=non_temporal,
                 num_columns=num_columns,
                 cells_per_column=cells_per_column,
             )
@@ -619,16 +670,7 @@ class Trainer:
         if not isinstance(dataset, dict) or not dataset:
             raise ValueError("Dataset must be a non-empty dict mapping field names to data.")
 
-        empty_fields = [name for name, values in dataset.items() if len(values) == 0]
-        if empty_fields:
-            raise ValueError(
-                "Dataset contains empty series for fields: " + ", ".join(sorted(empty_fields))
-            )
-
-        if steps is None:
-            steps = min(len(values) for values in dataset.values())
-        if steps < 0:
-            raise ValueError("steps must be non-negative.")
+        steps = steps or min(len(values) for values in dataset.values())
         field_errors: dict[str, list[float]] = {name: [] for name in dataset}
         prediction_failures: dict[str, int] = dict.fromkeys(dataset, 0)
         evaluation_bursts: list[int] = []
@@ -855,19 +897,55 @@ class Trainer:
     def show_active_columns(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show the active columns in the Brain."""
 
-        grapher.show_active_columns(brain, dataset_name)
+        import grapher as _grapher
+
+        _grapher.show_active_columns(brain, dataset_name)
 
     def show_heat_map(self, brain: Brain, dataset_name: str | None = None) -> None:
         """Show a heat map of the Brain's column duty cycle activity."""
 
-        grapher.show_heat_map(brain, dataset_name)
+        import grapher as _grapher
 
-    # TODO: Implement save_brain and load_brain methods for persistence of trained Brains
-    def save_brain(self, brain: Brain, filename: str) -> None:
-        """Save the Brain to a file."""
-        # Implement saving logic, e.g., using joblib or pickle
+        _grapher.show_heat_map(brain, dataset_name)
 
-    def load_brain(self, filename: str) -> Brain:
-        """Load a Brain from a file."""
-        # Implement loading logic, e.g., using joblib or pickle
-        return Brain({})  # Placeholder return
+    def save_brain(self, brain: Brain, filename: str | Path) -> None:
+        """Persist a trained Brain (weights, encoders, column state) to disk.
+
+        Data is written with :mod:`pickle`. Only load files you produced yourself;
+        unpickling untrusted files can execute arbitrary code.
+
+        Args:
+            brain: Brain to save.
+            filename: Destination path; parent directories are created if missing.
+        """
+
+        path = Path(filename).expanduser()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as f:
+            pickle.dump(brain, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def load_brain(self, filename: str | Path, *, set_as_main: bool = True) -> Brain:
+        """Load a Brain previously saved with :meth:`save_brain`.
+
+        Args:
+            filename: Path to the saved file.
+            set_as_main: If True, set :attr:`main_brain` and refresh trainer field
+                lists so :meth:`train_full_brain`, :meth:`train_column`, and
+                :meth:`test` run against this Brain.
+
+        Returns:
+            The deserialized Brain.
+
+        Raises:
+            TypeError: If the file does not unpickle to a :class:`Brain` instance.
+        """
+
+        path = Path(filename).expanduser()
+        with path.open("rb") as f:
+            loaded = pickle.load(f)
+        if not isinstance(loaded, Brain):
+            raise TypeError(f"Expected a Brain in {path}, got {type(loaded).__name__}")
+        if set_as_main:
+            self.main_brain = loaded
+            self._sync_trainer_fields_from_brain(loaded)
+        return loaded

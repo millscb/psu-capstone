@@ -34,7 +34,8 @@ class CategoryEncoderNew(BaseEncoder[str]):
 
     def __init__(self, parameters: CategoryParametersNew):
         self._parameters = self.check_parameters(copy.deepcopy(parameters))
-        self._category_list = self._parameters.category_list
+        # self._w = self._parameters.w
+        self._category_list = list(self._parameters.category_list)
         self._RDSEused = self._parameters.rdse_used
         self._num_categories = len(self._category_list) + 1
         self.size = self._parameters.size

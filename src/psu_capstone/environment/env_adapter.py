@@ -27,10 +27,13 @@ This keeps the adapter compatible with Gym while still giving the Brain the
 simple key/value input map it expects.
 """
 
+from collections.abc import Callable
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
+
+from psu_capstone.log import get_logger
 
 
 class EnvAdapter(gym.Wrapper):
@@ -45,6 +48,8 @@ class EnvAdapter(gym.Wrapper):
     Args:
         gym_env: Gym environment id (for gym.make) or any pre-built
             gym.Env instance (for example FinGym(...)).
+        reward_shaper: Optional callback used to transform the raw reward
+            from ``step`` using ``(reward, terminated, truncated, obs)``.
         **gym_kwargs: Optional kwargs used only when gym_env is a
             string id. These are forwarded to gym.make(...).Example:
             EnvAdapter("CartPole-v1", render_mode="human").
@@ -58,7 +63,7 @@ class EnvAdapter(gym.Wrapper):
     def __init__(
         self,
         gym_env: str | gym.Env = "CartPole-v1",
-        max_steps_per_episode: int | None = None,
+        reward_shaper: Callable[[float, bool, bool, Any], float] | None = None,
         **gym_kwargs: Any,
     ) -> None:
         # Constructor role in the adapter: ensure we always wrap one concrete
@@ -67,8 +72,6 @@ class EnvAdapter(gym.Wrapper):
             # Allowed path: gym_env is an id, so create the env here and pass
             # constructor kwargs through to gym.make(...).
             # Example: EnvAdapter("CartPole-v1", render_mode="human").
-            if max_steps_per_episode is not None:
-                gym_kwargs["max_episode_steps"] = max_steps_per_episode
             self._wrapped_env = gym.make(gym_env, **gym_kwargs)
         else:
             if gym_kwargs:
@@ -82,13 +85,18 @@ class EnvAdapter(gym.Wrapper):
             # If the caller already built an env, just wrap it.
             self._wrapped_env = gym_env
 
+        # Maintain compatibility with older runtime code that expects
+        # adapters to expose the underlying Gym env as ``_env``.
+        self._env = self._wrapped_env
+
         super().__init__(self._wrapped_env)
 
         # Internal observation cache for episode state.
         self._obs: Any | None = None
+        self._logger = get_logger(self)
 
-        # Store max_steps_per_episode for external access
-        self.max_steps_per_episode = max_steps_per_episode
+        # Optional reward shaper: (reward, terminated, truncated, obs) -> float
+        self._reward_shaper = reward_shaper
 
     def _to_serializable(self, value: Any) -> Any:
         """Convert numpy values to JSON-friendly Python types.
@@ -297,6 +305,16 @@ class EnvAdapter(gym.Wrapper):
         Use step_bridge if you also need Brain-ready flattened inputs.
         """
 
+        if isinstance(self.action_space, gym.spaces.Box):
+            # Continuous-action envs expect ndarray-shaped actions.
+            if np.isscalar(action):
+                action = np.full(
+                    self.action_space.shape, float(action), dtype=self.action_space.dtype
+                )
+            else:
+                action = np.asarray(action, dtype=self.action_space.dtype)
+            action = np.clip(action, self.action_space.low, self.action_space.high)
+
         # Local role: run one Gym transition and normalize result types.
         self._obs, reward, terminated, truncated, info = self.env.step(action)
         return self._obs, float(reward), bool(terminated), bool(truncated), info
@@ -317,6 +335,20 @@ class EnvAdapter(gym.Wrapper):
 
         # Outside role: this is the main per-step handoff from Gym to Brain.
         obs, reward, terminated, truncated, info = self.step(action)
+
+        if self._reward_shaper is not None:
+            reward = self._reward_shaper(reward, terminated, truncated, obs)
+
+        action_inputs = self.action_to_inputs(action)
+
+        self._logger.info(
+            "[Layer:EnvAdapter] action=%s action_inputs=%s reward=%.6f terminated=%s truncated=%s",
+            action,
+            action_inputs,
+            float(reward),
+            bool(terminated),
+            bool(truncated),
+        )
 
         return {
             "obs": obs,

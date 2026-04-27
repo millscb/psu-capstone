@@ -330,6 +330,43 @@ def test_demonstrate_anything_can_be_categories():
     assert encoder3.decode(c2)[0] == "NA"
 
 
+# ---------------------------------------------------------------------------
+# Attribute contract and parameter isolation
+# ---------------------------------------------------------------------------
+
+
+def test_invalid_w_raises_at_construction():
+    """w=0 must be caught at construction, not silently at encode time."""
+    with pytest.raises(ValueError, match="'w' must be positive"):
+        CategoryEncoder(CategoryParameters(w=0, category_list=["a", "b"]))
+
+
+def test_empty_category_list_raises_at_construction():
+    """Empty category_list must be caught at construction."""
+    with pytest.raises(ValueError, match="cannot be empty"):
+        CategoryEncoder(CategoryParameters(w=3, category_list=[]))
+
+
+def test_duplicate_category_list_raises_at_construction():
+    """Duplicate entries in category_list must be caught at construction."""
+    with pytest.raises(ValueError, match="duplicate"):
+        CategoryEncoder(CategoryParameters(w=3, category_list=["a", "b", "a"]))
+
+
+def test_category_list_mutation_after_construction_does_not_affect_encoder():
+    """Mutating the params object after construction must not corrupt the encoder."""
+    categories = ["ES", "GB", "US"]
+    params = CategoryParameters(w=3, category_list=categories, rdse_used=False)
+    encoder = CategoryEncoder(params)
+    original_encoding = encoder.encode("ES")
+
+    # Mutate the original list after construction
+    params.category_list.append("EXTRA")
+    params.category_list.clear()
+
+    assert encoder.encode("ES") == original_encoding
+
+
 def hamming_distance_helper(first, second) -> int:
     """
     Helper method to find the differences with the first != second and then count the nonzero

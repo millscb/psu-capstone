@@ -73,9 +73,11 @@ runs:
           echo "⏩ MyPy not enabled, skipping installation"
         fi
 
-        # Install pydoclint if enabled
+        # Install pydoclint if enabled. Remove conflicting parser packages first,
+        # then install the fork that exposes the API pydoclint's flake8 plugin expects.
         if [ "${{ inputs.pydoclint_enabled }}" = "true" ]; then
-          pip install pydoclint
+          pip uninstall -y docstring-parser docstring-parser-fork pydoclint || true
+          pip install "docstring-parser-fork==0.0.14" "pydoclint==0.8.3"
           echo "✅ Pydoclint installed"
         else  
           echo "⏩ Pydoclint not enabled, skipping installation"

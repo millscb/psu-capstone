@@ -1,9 +1,3 @@
-from __future__ import annotations
-
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
-from utils import PROJECT_ROOT
-
 """Visualization utilities for SDRs and encoder analysis.
 
 This module provides plotting functions for visualizing sparse distributed
@@ -15,7 +9,6 @@ displaying SDR patterns as 2D grids.
 import os
 from typing import Any
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -24,11 +17,14 @@ from matplotlib.colors import ListedColormap, PowerNorm
 from scipy.fft import fft, fftfreq
 
 from legacy.sdr_layer.sdr import SDR
+from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
+from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from psu_capstone.input_layer.input_handler import InputHandler
+from psu_capstone.log import logger
+from utils import DATA_PATH, PROJECT_ROOT
 
-# Use Agg backend (non-interactive but reliable on all systems)
-
-
-matplotlib.use("Agg")
 plt.style.use("seaborn-v0_8-poster")
 
 
@@ -101,12 +97,7 @@ def show_heat_map(brain: Any, dataset_name: str | None = None) -> None:
     plt.colorbar(label="Duty Cycle")
     plt.xticks([])
     plt.yticks([])
-
-    # Save the plot to a file
-    filename = f"Heat_Map_{column_field.name.replace(' ', '_').replace(':', '').replace('(', '').replace(')', '').replace('/', '_')}.png"
-    plt.savefig(filename)
-    print(f"Plot saved to {filename}")
-    plt.close()
+    plt.show(block=True)
 
 
 def plot_sdr(data: list[int], title: str | None = None) -> None:
@@ -137,19 +128,68 @@ def plot_sdr(data: list[int], title: str | None = None) -> None:
     # colormap: white for 0, blue for 1
     cmap = ListedColormap(["white", "blue"])
 
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(12, 12))
     plt.imshow(grid, cmap=cmap, interpolation="nearest")
     plot_title = title or "SDR Visualization"
-    plt.title(plot_title)
+    plt.title(plot_title, fontsize=14)
     plt.xticks([])
     plt.yticks([])
     plt.grid(False)
+    plt.show(block=True)
 
-    # Save the plot to a file
-    filename = f"{plot_title.replace(' ', '_').replace(':', '').replace('(', '').replace(')', '').replace('/', '_')}.png"
-    plt.savefig(filename)
-    print(f"Plot saved to {filename}")
-    plt.close()
+
+def _sdr_to_grid(data: list[int]) -> np.ndarray:
+    """Convert 1D SDR bits into a square 2D grid with zero-padding."""
+    sdr = SDR([len(data)])
+    sdr.set_dense(data)
+    dense = np.array(sdr.get_dense(), dtype=int)
+
+    n = dense.size
+    side = int(np.ceil(np.sqrt(n)))
+    padded = np.zeros(side * side, dtype=int)
+    padded[:n] = dense
+    return padded.reshape(side, side)
+
+
+def plot_sdr_sequence(items: list[tuple[list[int], str]]) -> None:
+    """Interactive SDR gallery.
+
+    Controls:
+    - Right arrow / 'n': next SDR
+    - Left arrow / 'p': previous SDR
+    - Escape / 'q': close viewer
+    """
+    if not items:
+        raise ValueError("items must contain at least one SDR plot entry.")
+
+    cmap = ListedColormap(["white", "blue"])
+    index = 0
+
+    fig, ax = plt.subplots(figsize=(12, 12))
+    im = ax.imshow(_sdr_to_grid(items[index][0]), cmap=cmap, interpolation="nearest")
+    ax.set_title(items[index][1], fontsize=14)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.grid(False)
+
+    def _render(i: int) -> None:
+        nonlocal index
+        index = i % len(items)
+        im.set_data(_sdr_to_grid(items[index][0]))
+        ax.set_title(items[index][1], fontsize=14)
+        fig.canvas.draw_idle()
+
+    def _on_key(event: Any) -> None:
+        key = (event.key or "").lower()
+        if key in {"right", "n"}:
+            _render(index + 1)
+        elif key in {"left", "p"}:
+            _render(index - 1)
+        elif key in {"escape", "q"}:
+            plt.close(fig)
+
+    fig.canvas.mpl_connect("key_press_event", _on_key)
+    plt.show(block=True)
 
 
 def plot_signal(

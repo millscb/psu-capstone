@@ -110,8 +110,8 @@ uv run pydocstyle src/psu_capstone --convention=google
 # Check docstring coverage (80% threshold)
 uv run interrogate -vv src/psu_capstone --fail-under=80
 
-# Strict validation (args match signatures)
-uv run pydoclint --style=google src/
+# Strict validation (args match signatures; isolated deps avoid docstring_parser conflicts)
+uv run --with pydoclint --with docstring-parser-fork pydoclint --style=google src/
 ```
 
 ### GitHub Actions

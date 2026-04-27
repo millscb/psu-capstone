@@ -14,16 +14,23 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import gymnasium as gym
+# Allow running this file directly via an absolute path without installing the package.
+SRC_ROOT = Path(__file__).resolve().parents[3]
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
-from psu_capstone.agent_layer.pullin.pullin_brain import Brain
-from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
-from psu_capstone.agent_layer.pullin.sungur import ValueField
-from psu_capstone.encoder_layer.category_encoder import CategoryParameters  # find the new one
-from psu_capstone.environment.pullin.pullin_gym_adapter import GymBrain
+import gymnasium as gym  # noqa: E402
 
-sys.path.insert(0, str(Path(__file__).parent))
-
+from psu_capstone.agent_layer.pullin.pullin_brain import Brain  # noqa: E402
+from psu_capstone.agent_layer.pullin.pullin_htm import (  # noqa: E402
+    ColumnField,
+    InputField,
+    OutputField,
+)
+from psu_capstone.agent_layer.pullin.sungur import ValueField  # noqa: E402
+from psu_capstone.encoder_layer.category_encoder import CategoryParameters  # noqa: E402
+from psu_capstone.encoder_layer.rdse import RDSEParameters  # noqa: E402
+from psu_capstone.environment.pullin.pullin_gym_adapter import GymBrain  # noqa: E402
 
 # -- Environment ----------------------------------------------------------------
 
@@ -52,16 +59,15 @@ def build_brain() -> Brain:
     """Construct the HTM brain for FrozenLake."""
 
     # State encoder: one unique SDR per tile (0-15)
-    state_encoder_params = CategoryParameters(  # find the new one
-        size=STATE_ENCODER_SIZE,
-        active_bits_per_category=STATE_ACTIVE_BITS,
-        category_list=list(range(NUM_STATES)),
+    state_encoder_params = CategoryParameters(
+        w=STATE_ACTIVE_BITS,
+        category_list=[str(state) for state in range(NUM_STATES)],
     )
     state_field = InputField(encoder_params=state_encoder_params)
 
     # Pre-register all 16 states so the encoder cache is warm
     for s in range(NUM_STATES):
-        state_field.encoder.encode(s)
+        state_field.encoder.encode(str(s))  # type: ignore[arg-type]
 
     # Temporal memory layer
     column_field = ColumnField(
@@ -82,10 +88,14 @@ def build_brain() -> Brain:
     column_field.nogo_field = nogo_field
 
     # Action output field driven by column layer activity
-    action_encoder_params = CategoryParameters(  # find the new one
+    action_encoder_params = RDSEParameters(
         size=ACTION_ENCODER_SIZE,
-        active_bits_per_category=ACTION_ACTIVE_BITS,
-        category_list=list(range(NUM_ACTIONS)),
+        active_bits=ACTION_ACTIVE_BITS,
+        sparsity=0.0,
+        radius=0.0,
+        resolution=1.0,
+        category=False,
+        seed=1,
     )
     action_field = OutputField(
         input_field=column_field,
@@ -125,12 +135,14 @@ def pick_action(brain: Brain) -> int:
 
 def obs_to_inputs(obs: Any) -> dict[str, Any]:
     """Convert FrozenLake observation (int 0-15) to Brain input dict."""
-    return {"state": float(obs)}
+    return {"state": str(obs)}
 
 
 def behavior_to_action(behavior: dict[str, Any]) -> int:
     """Convert Brain behavior dict to a discrete FrozenLake action."""
     value = behavior.get("action")
+    if isinstance(value, dict):
+        value = value.get("action")
     if value is not None and 0 <= int(value) < NUM_ACTIONS:
         return int(value)
     import random
@@ -162,9 +174,9 @@ def run_episode(agent: GymBrain, env: gym.Env, learn: bool = True) -> tuple[floa
     return total_reward, MAX_STEPS_PER_EPISODE
 
 
-def step_fn(env: gym.Env, action: int, timestep: int) -> int:
+def step_fn(env: gym.Env, action: int, _timestep: int) -> dict[str, Any]:
     """Step function for ClusterTracker input snapshots (legacy helper)."""
-    obs, reward, terminated, truncated, _ = env.step(action)
+    obs, reward, _, _, _ = env.step(action)
     stimulus = obs_to_inputs(obs)
     stimulus["reward"] = reward
     return stimulus
@@ -179,7 +191,7 @@ def main() -> None:
     recent_window = PRINT_EVERY
 
     for episode in range(1, NUM_EPISODES + 1):
-        reward, steps = run_episode(agent, env, learn=True)
+        reward, _ = run_episode(agent, env, learn=True)
         if reward > 0:
             wins += 1
             recent_wins += 1

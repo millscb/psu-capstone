@@ -59,6 +59,10 @@ class ValueField:
         self.avg_error = 0.0
         self._weight_fn = weight_fn or ValueField._default_weight
 
+    def __getattr__(self, name: str) -> Any:
+        """Delegate unknown attributes to the wrapped ColumnField."""
+        return getattr(self._field, name)
+
     @staticmethod
     def _default_weight(cell: Any) -> float:
         """Default weight for a cell based on HTM-like boolean states."""
