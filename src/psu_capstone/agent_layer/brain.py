@@ -16,10 +16,16 @@ from typing import Any
 from uuid import uuid4
 
 from psu_capstone.agent_layer.abstract_brain import AbstractBrain
-from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, Field, InputField, OutputField
+from psu_capstone.agent_layer.HTM import ColumnField as LegacyColumnField
+from psu_capstone.agent_layer.HTM import InputField as LegacyInputField
+from psu_capstone.agent_layer.HTM import OutputField as LegacyOutputField
+from psu_capstone.agent_layer.pullin.field_base import Field
+from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
+from psu_capstone.log import LoggerManager
 
 
 class Brain(AbstractBrain):
+    CONF_SUFFIX = ".conf"
     """Manages HTM input fields and column fields with a unified API.
 
     Allows binding named inputs to InputFields and processing all inputs
@@ -58,13 +64,19 @@ class Brain(AbstractBrain):
         # Separate fields into input, output, and column fields for easy access
         # ensure that values are instances of the correct type
         self._input_fields: dict[str, InputField] = {
-            k: v for k, v in fields.items() if isinstance(v, InputField)
+            k: v  # type: ignore[assignment]
+            for k, v in fields.items()
+            if isinstance(v, (InputField, LegacyInputField))
         }
         self._output_fields: dict[str, OutputField] = {
-            k: v for k, v in fields.items() if isinstance(v, OutputField)
+            k: v  # type: ignore[assignment]
+            for k, v in fields.items()
+            if isinstance(v, (OutputField, LegacyOutputField))
         }
         self._column_fields: dict[str, ColumnField] = {
-            k: v for k, v in fields.items() if isinstance(v, ColumnField)
+            k: v  # type: ignore[assignment]
+            for k, v in fields.items()
+            if isinstance(v, (ColumnField, LegacyColumnField))
         }
         self.fields = fields
         self.logger = get_logger(self)
@@ -75,8 +87,11 @@ class Brain(AbstractBrain):
         return self.fields[name]
 
     def __getattr__(self, name: str) -> Field:
-        if name in self.fields:
-            return self.fields[name]
+        # Use __getattribute__ for `fields` so unpickling and edge cases do not recurse
+        # via attribute lookup on a half-restored instance.
+        fields = object.__getattribute__(self, "fields")
+        if name in fields:
+            return fields[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def step(
@@ -110,18 +125,22 @@ class Brain(AbstractBrain):
         for input_name in self._input_fields:
             input_field = self._input_fields[input_name]
             if hasattr(input_field.encoder, "decode"):
-                predictions[input_name], predictions[input_name + ".conf"] = input_field.decode(  # type: ignore
-                    "predictive"
-                )
-                self.logger.info(
-                    "Decoded SDR into value: %s, with confidence: %s",
-                    predictions[input_name],
-                    predictions[input_name + ".conf"],
-                )
+                try:
+                    predictions[input_name], predictions[input_name + self.CONF_SUFFIX] = input_field.decode(  # type: ignore
+                        "predictive"
+                    )
+                    self.logger.info(
+                        "Decoded SDR into value: %s, with confidence: %s",
+                        predictions[input_name],
+                        predictions[input_name + self.CONF_SUFFIX],
+                    )
+                except ValueError:
+                    predictions[input_name] = None
+                    predictions[input_name + self.CONF_SUFFIX] = 0.0
 
         return predictions  # type: ignore
 
-    def rl_policy_update(self) -> None:
+    def rl_policy_update(self, reward: float | None = None) -> None:
         """RL policy prediction method that returns the next action based on reward fields."""
         # TODO: Brain needs fully functioning RL reward fields. (GO, NO-GO)
         pass

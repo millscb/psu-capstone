@@ -263,6 +263,9 @@ class AgentWebSocketServer:
             obs: Current environment observation sent by the client.
             reward: Reward received for the previous action (0.0 on first step).
             done: Whether the episode ended after the previous action.
+
+        Returns:
+            Response payload containing the chosen action or an error message.
         """
         state = self._episode_state.get(client_id)
         if not state or not state["episode_active"]:

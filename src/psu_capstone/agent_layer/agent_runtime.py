@@ -34,14 +34,17 @@ To get the backend and frontend working together:
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from statistics import fmean
 from typing import Any, Literal, TypedDict, cast
 
-import gym_trading_env  # Ensure TradingEnv is registered with Gymnasium
+try:
+    import gym_trading_env  # noqa: F401  # Ensure TradingEnv is registered with Gymnasium
+except ModuleNotFoundError:
+    gym_trading_env = None
 
 from psu_capstone.agent_layer.agent import Agent
-from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
 from psu_capstone.agent_layer.pullin.pullin_brain import Brain
 from psu_capstone.agent_layer.train import Trainer
 from psu_capstone.encoder_layer.category_encoder import CategoryParameters
@@ -51,6 +54,37 @@ from psu_capstone.environment.frontend_env_adapter import FrontendEnvAdapter
 from psu_capstone.log import get_logger
 
 PolicyMode = Literal["q_table", "brain", "ppo"]
+
+
+@dataclass(frozen=True)
+class AgentPolicyProfile:
+    """Environment-specific tuning knobs for the shared Agent.update method."""
+
+    q_learning_rate: float = 0.1
+    q_discount_factor: float = 0.99
+    epsilon_start: float = 1.0
+    epsilon_decay: float = 0.01
+    reward_scale: float = 1.0
+
+
+DEFAULT_POLICY_PROFILE = AgentPolicyProfile()
+
+ENV_POLICY_PROFILES: dict[str, AgentPolicyProfile] = {
+    # Sparse reward grid world: keep exploration high for longer.
+    "FrozenLake-v1": AgentPolicyProfile(epsilon_start=1.0, epsilon_decay=0.002, reward_scale=5.0),
+    # Dense low-magnitude positive rewards.
+    "CartPole-v1": AgentPolicyProfile(q_learning_rate=0.1, reward_scale=1.0),
+    # Mostly -1 step costs, slower and conservative updates.
+    "MountainCar-v0": AgentPolicyProfile(q_learning_rate=0.05, q_discount_factor=0.995),
+    # Dense negative rewards; scale for a stronger learning signal in shared update path.
+    "Pendulum-v1": AgentPolicyProfile(q_learning_rate=0.05, reward_scale=0.1),
+    # Higher variance rewards; use moderate learning rate.
+    "LunarLander-v3": AgentPolicyProfile(q_learning_rate=0.07, q_discount_factor=0.99),
+    # Trading rewards can vary substantially by setup.
+    "TradingEnv": AgentPolicyProfile(
+        q_learning_rate=0.03, q_discount_factor=0.995, reward_scale=0.5
+    ),
+}
 
 
 class FrontendEnvSpec(TypedDict):
@@ -63,6 +97,17 @@ class FrontendEnvSpec(TypedDict):
 
 
 FRONTEND_ENV_SPECS: dict[str, FrontendEnvSpec] = {
+    "TradingEnv": {
+        "observation_labels": ["open", "high", "low", "close", "volume"],
+        "action_count": 3,
+        "initial_observation": {
+            "open": 1769.5,
+            "high": 1773.5,
+            "low": 1739.75,
+            "close": 1749.25,
+        },
+        "max_steps_per_episode": 500,
+    },
     "TradingEnv": {
         "observation_labels": ["open", "high", "low", "close", "volume"],
         "action_count": 3,
@@ -162,6 +207,10 @@ class AgentRuntimeConfig:
         resolution: RDSE resolution used for continuous inputs.
         seed: Base seed for encoder parameter generation.
         render_mode: Optional Gymnasium render mode for local runs.
+        reward_output_file: Output JSON path for local run episode metrics.
+        step_delay_seconds: Optional delay after each env step for readability.
+        non_spatial: Whether spatial pooling should be disabled.
+        non_temporal: Whether temporal memory should be disabled.
         host: WebSocket bind host for server mode.
         port: WebSocket bind port for server mode.
         ppo_pretrain_timesteps: PPO warm-up timesteps before serving/running.
@@ -176,6 +225,10 @@ class AgentRuntimeConfig:
     resolution: float = 0.01
     seed: int = 5
     render_mode: str | None = None
+    reward_output_file: str = "episode_rewards.json"
+    step_delay_seconds: float = 0.0
+    non_spatial: bool = False
+    non_temporal: bool = False
     host: str = "localhost"
     port: int = 8765
     ppo_pretrain_timesteps: int = 50_000
@@ -224,13 +277,16 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
     adapter_kwargs: dict[str, Any] = {}
     if config.render_mode is not None:
         adapter_kwargs["render_mode"] = config.render_mode
-    if hasattr(config, "max_steps_per_episode") and config.max_steps_per_episode is not None:
-        adapter_kwargs["max_steps_per_episode"] = config.max_steps_per_episode
     # Special handling for TradingEnv: provide a default DataFrame
     if config.env_id == "TradingEnv":
+        if gym_trading_env is None:
+            raise ModuleNotFoundError(
+                "TradingEnv requires optional dependency 'gym_trading_env'. "
+                "Install it or remove TradingEnv from the run list."
+            )
         import pandas as pd
 
-        df = pd.read_csv("data/fin_test.csv")
+        df = pd.read_csv("data/fin_test.csv", parse_dates=["timestamp"], index_col="timestamp")
         # Rename columns to feature_* as required by gym_trading_env
         feature_cols = ["open", "high", "low", "close", "volume"]
         for col in feature_cols:
@@ -253,19 +309,7 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
             }
         )
 
-    try:
-        return EnvAdapter(config.env_id, **adapter_kwargs), False
-    except Exception as exc:
-        # Error handling for adapter creation
-        if config.env_id in FRONTEND_ENV_SPECS and not allow_frontend_env:
-            raise ValueError(
-                f"Environment '{config.env_id}' is frontend-driven in this mode. Use server mode for frontend aliases or pass a valid Gym env id."
-            ) from exc
-        if config.env_id in FRONTEND_ENV_SPECS and config.policy_mode == "ppo":
-            raise ValueError(
-                f"PPO mode requires a Gym-backed environment. '{config.env_id}' is configured as a frontend env and could not be created via Gym."
-            ) from exc
-        raise
+    return EnvAdapter(config.env_id, **adapter_kwargs), False
 
 
 def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> AgentRuntime:
@@ -280,6 +324,17 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
     np.random.seed(config.seed)
 
     adapter, is_frontend_env = build_adapter(config, allow_frontend_env=allow_frontend_env)
+    profile = ENV_POLICY_PROFILES.get(config.env_id, DEFAULT_POLICY_PROFILE)
+    logger = get_logger(None)
+    logger.info(
+        "Using policy profile for %s: lr=%.4f gamma=%.4f eps_start=%.4f eps_decay=%.4f reward_scale=%.4f",
+        config.env_id,
+        profile.q_learning_rate,
+        profile.q_discount_factor,
+        profile.epsilon_start,
+        profile.epsilon_decay,
+        profile.reward_scale,
+    )
     trainer = Trainer(Brain({}))
     brain = trainer.build_brain_for_env(adapter, config)
     agent = Agent(
@@ -287,10 +342,11 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
         adapter=adapter,
         episodes=config.episodes,
         policy_mode=config.policy_mode,
-        # Keep confidence-threshold fallback behavior active in brain mode:
-        # brain (>= threshold) -> ppo -> q_table.
-        force_brain_mode=False,
-        config=config,  # Pass config so Agent can use the seed
+        q_learning_rate=profile.q_learning_rate,
+        q_discount_factor=profile.q_discount_factor,
+        epsilon_start=profile.epsilon_start,
+        epsilon_decay=profile.epsilon_decay,
+        reward_scale=profile.reward_scale,
     )
 
     # Only pre-train PPO if policy_mode is 'ppo'
@@ -317,8 +373,10 @@ def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> Ag
     )
 
 
-def build_server(runtime: AgentRuntime) -> AgentWebSocketServer:
+def build_server(runtime: AgentRuntime) -> Any:
     """Create the websocket server for a built runtime."""
+
+    from psu_capstone.agent_layer.agent_server import AgentWebSocketServer
 
     return AgentWebSocketServer(
         runtime.agent,
@@ -360,7 +418,13 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
         env = getattr(runtime.adapter, "_env", None)
 
         for episode_index in range(config.episodes):
-            logger.info("Starting local episode %d/%d", episode_index + 1, config.episodes)
+            logger.info(
+                "Starting local episode %d/%d for env %s with policy %s",
+                episode_index + 1,
+                config.episodes,
+                config.env_id,
+                config.policy_mode,
+            )
             runtime.agent.reset_episode()
             done = False
             total_reward = 0.0
@@ -378,6 +442,9 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
                 if env is not None and config.render_mode is not None and hasattr(env, "render"):
                     env.render()
 
+                if config.step_delay_seconds > 0:
+                    time.sleep(config.step_delay_seconds)
+
             episode_rewards.append(total_reward)
             episode_steps.append(steps)
             logger.info(
@@ -387,8 +454,18 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
                 steps,
             )
 
+            # Save TradingEnv render logs after every episode so the Flask
+            # renderer can replay any episode without re-running the agent.
+            if (
+                config.env_id == "TradingEnv"
+                and env is not None
+                and hasattr(env, "save_for_render")
+            ):
+                env.save_for_render(dir="render_logs")
+
         results = {
             "env_id": config.env_id,
+            "policy_mode": config.policy_mode,
             "episodes": config.episodes,
             "max_steps_per_episode": config.max_steps_per_episode,
             "episode_rewards": episode_rewards,
@@ -398,8 +475,12 @@ def run_local_session(config: AgentRuntimeConfig) -> dict[str, Any]:
         }
         # Save results to file for graphing
         import json
+        from pathlib import Path
 
-        with open("episode_rewards.json", "w") as f:
+        reward_path = Path(config.reward_output_file)
+        if reward_path.parent != Path("."):
+            reward_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(reward_path, "w") as f:
             json.dump(results, f, indent=2)
         return results
     finally:

@@ -19,24 +19,24 @@ from typing import Any
 import pytest
 
 from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 # from legacy.sdr_layer.sdr import SDR
 
 
 @pytest.fixture
 def base_encoder_instance() -> BaseEncoder:
-    """Fixture to create a BaseEncoder instance for testing."""
-
-    # Arrange @mock
-    class TestEncoder(BaseEncoder):
-        def encode(self, input_value) -> list[int]:
-            """Dummy encode method for testing."""
-            return []
-
-        def decode(self, input_sdr: list[int]) -> Any:
-            return 1
-
-    return TestEncoder(100)
+    """Fixture to create a real encoder instance for testing BaseEncoder behaviour."""
+    params = RDSEParameters(
+        size=100,
+        active_bits=4,
+        sparsity=0.0,
+        radius=1.0,
+        resolution=0.0,
+        category=False,
+        seed=42,
+    )
+    return RandomDistributedScalarEncoder(params)
 
 
 # Test Type: unit test

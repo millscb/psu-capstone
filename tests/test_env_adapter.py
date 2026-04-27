@@ -1,7 +1,5 @@
 """Tests for EnvAdapter construction and FinGym integration."""
 
-# TS-20: EnvAdapter wrapper unit tests (Team 20 SWENG 481)
-
 from __future__ import annotations
 
 import numpy as np
@@ -12,9 +10,7 @@ from psu_capstone.environment.env_adapter import EnvAdapter
 from psu_capstone.environment.fin_gym import FinGym
 
 
-# Test Type: unit test
 def test_env_adapter_accepts_instantiated_fingym() -> None:
-    # TC-170
     """EnvAdapter should wrap a pre-built FinGym instance directly."""
 
     frame = pd.DataFrame(
@@ -51,9 +47,7 @@ def test_env_adapter_accepts_instantiated_fingym() -> None:
     assert "truncated" in step_bridge
 
 
-# Test Type: unit test
 def test_env_adapter_accepts_make_kwargs() -> None:
-    # TC-171
     """EnvAdapter should forward kwargs when constructing Gym env from id."""
 
     adapter = EnvAdapter("CartPole-v1", render_mode="rgb_array")
@@ -62,9 +56,7 @@ def test_env_adapter_accepts_make_kwargs() -> None:
     assert isinstance(reset_bridge["inputs"], dict)
 
 
-# Test Type: unit test
 def test_env_adapter_rejects_kwargs_with_env_instance() -> None:
-    # TC-172
     """Passing gym kwargs with an env instance should raise ValueError."""
 
     frame = pd.DataFrame(
@@ -75,5 +67,27 @@ def test_env_adapter_rejects_kwargs_with_env_instance() -> None:
     )
     env = FinGym(data_source=frame, target_column="target")
 
-    with pytest.raises(ValueError, match="gym_kwargs"):
+    try:
         _ = EnvAdapter(env, render_mode="human")
+        assert False, "Expected ValueError when kwargs are passed with env instance"
+    except ValueError as exc:
+        assert "gym_kwargs" in str(exc)
+
+    @pytest.mark.parametrize(
+        "env_id,step_action",
+        [
+            ("CartPole-v1", 0),
+            ("MountainCar-v0", 0),
+            ("FrozenLake-v1", 0),
+            ("Pendulum-v1", [0.0]),
+        ],
+    )
+    def test_env_adapter_accepts_standard_gym_envs(env_id, step_action):
+        """EnvAdapter should accept and run standard Gym environments."""
+        adapter = EnvAdapter(env_id)
+        reset_bridge = adapter.reset_bridge()
+        assert isinstance(reset_bridge["inputs"], dict)
+        step_bridge = adapter.step_bridge(step_action)
+        assert "reward" in step_bridge
+        assert "terminated" in step_bridge
+        assert "truncated" in step_bridge

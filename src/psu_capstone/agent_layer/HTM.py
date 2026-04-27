@@ -452,7 +452,13 @@ class Column(Active, Predictive, Bursting):  # type: ignore
 
     def compute_overlap(self) -> None:
         """Compute overlap with current binary input vector."""
-        self.overlap = sum(s.source_cell.active for s in self.connected_synapses)  # type: ignore
+        if self.connected_synapses:
+            self.overlap = sum(s.source_cell.active for s in self.connected_synapses)  # type: ignore
+            return
+
+        # Bootstrap early learning when no synapse has crossed the connection
+        # threshold yet by using potential-synapse activity as a weak overlap.
+        self.overlap = sum(s.source_cell.active for s in self.potential_synapses)  # type: ignore
 
     def learn(self) -> None:
         """Learn on proximal synapses based on current input."""
@@ -661,7 +667,7 @@ class ColumnField(Field):
         # Randomly select from tied columns to fill remaining spots
         remaining_spots = k - len(above_threshold)
         if remaining_spots > 0 and at_threshold:
-            selected = random.sample(at_threshold, remaining_spots)
+            selected = at_threshold[:remaining_spots]
             for col in selected:
                 self.active_columns.append(col)
                 col.set_active()
@@ -953,14 +959,6 @@ class OutputField(Field):
             return {"action": None, "confidence": 0.0}
 
         active_indices = [idx for idx, cell in enumerate(cells) if bool(getattr(cell, state))]
-
-        # In active-mode decoding, allow predictive bits to provide a weak
-        # action hint when no active bits are currently set.
-        if state == "active" and not active_indices:
-            predictive_indices = [idx for idx, cell in enumerate(cells) if bool(cell.predictive)]
-            if predictive_indices:
-                active_indices = predictive_indices
-
         confidence = len(active_indices) / len(cells)
 
         # Treat motor_action as an ordered action candidate tuple.

@@ -16,71 +16,46 @@ These tests validate the critical pipeline connection from input processing thro
 SDR encoding that feeds into the HTM temporal memory engine.
 """
 
-from typing import Any
-
-import pytest
-
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
+from psu_capstone.agent_layer.HTM import InputField
+from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from psu_capstone.input_layer.input_handler import InputHandler
 
 
-class DummyEncoder(BaseEncoder):
-    def __init__(self, size: int = 8):
-        super().__init__(size=size)
-
-    def attach_input(self, records: dict[str, list[float]]):
-        self.input_records = records
-
-    def encode(self, input_value: float) -> list[int]:
-        return [0] * self.size
-
-    def decode(self, input_sdr: list[int]) -> Any:
-        return 1
-
-
-# Note: This is expected to fail because we do not have an HTM interface yet
-# from psu_capstone.htm.interface import HTMinterface
-
-
-class HTMinterface:
-    """
-    Mock Class for HTM interface
-
-
-    """
-
-    def __init__(self, sdr: list[int]):
-        self.last_received_sdr = sdr
-
-    def consume_sdr(self, sdr: list[int]):
-        self.last_received_sdr = sdr
-
-
-# Test Type: integration test
 def test_encoder_to_htm_receives_sdr_object():
+    """Real ScalarEncoder output is passed into a real InputField (HTM cell consumer)."""
 
-    # Arrange
+    # Arrange: a fibonacci-like sequence as input data
     fib_sequence = [0, 1, 1, 2, 3, 5, 8, 13]
 
-    encoder = DummyEncoder()
+    enc_params = ScalarEncoderParameters(
+        minimum=0.0,
+        maximum=13.0,
+        active_bits=4,
+        sparsity=0.0,
+        size=100,
+        radius=0.0,
+        resolution=1.0,
+        clip_input=True,
+        periodic=False,
+        category=False,
+    )
+    encoder = ScalarEncoder(enc_params)
+    # InputField wraps the same encoder type, providing the HTM cell interface
+    input_field = InputField(encoder_params=enc_params)
+
     handler = InputHandler()
     records = handler.input_data(fib_sequence, required_columns=["value"])
-    encoder.attach_input(records)
 
-    # HTM interface (not implemented yet)
-    htm = HTMinterface([8, 1])
-
-    # Act
-    # Encode a single value
+    # Act: encode a value and feed it into the real HTM InputField
     last_value = records["value"][3]
-    # sdr = SDR([8, 1])
-    e = encoder.encode(last_value)
-
-    # Mock interface call: Would accept an SDR instance as input.
-    htm.consume_sdr(e)
+    sdr = encoder.encode(last_value)
+    input_field.encode(last_value)
+    active_cells = [cell for cell in input_field.cells if cell.active]
 
     # Assert
-    # Once HTMinterface is implemented, give it some observable state
     assert isinstance(records, dict)
     assert last_value == 2
     assert len(records["value"]) == 8
+    assert set(sdr).issubset({0, 1})
+    assert sum(sdr) == 4  # active_bits=4
+    assert len(active_cells) == 4  # InputField cells mirror encoder active bits

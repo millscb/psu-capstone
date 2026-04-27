@@ -29,6 +29,9 @@ class Brain:
                 "consumption": row["value"],
                 "date": row["timestamp"],
             })
+
+    Args:
+        fields: Mapping of field names to field objects managed by the brain.
     """
 
     def __init__(self, fields: dict[str, Field] | None = None) -> None:
@@ -84,13 +87,20 @@ class Brain:
             inputs: Dict mapping field names to input values.
             learn: Whether to enable learning during this step.
             reward: External reward signal. If None, reward is computed internally.
+
+        Returns:
+            Behavior mapping produced by the output fields for this timestep.
         """
-        self._logger.debug(f"step() called with inputs={inputs}, learn={learn}, reward={reward}")
+        logged_reward = inputs.get("reward", reward)
+        if logged_reward is None:
+            logged_reward = "pending"
+        self._logger.info(f"Brain.step inputs={inputs} learn={learn} reward={logged_reward}")
         self.encode_only(inputs)
         self.compute_only(learn=learn)
         if "reward" in inputs:
             reward = inputs["reward"]
-        self.estimate_value(reward)
+        if reward is not None:
+            self.estimate_value(reward)
         self.activate_apical_segments()
         behavior = self.generate_behavior()
         self._logger.debug(f"generate_behavior() output: {behavior}")
@@ -152,10 +162,7 @@ class Brain:
         Args:
             learn: Whether to enable learning during this step.
         """
-        # TODO: No distinction between column and value fields right now
         for field in self._column_fields.values():
-            field.compute(learn=learn)
-        for field in self._value_fields.values():
             field.compute(learn=learn)
 
     def compute_intrinsic_reward(self) -> float:

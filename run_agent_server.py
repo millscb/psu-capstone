@@ -30,8 +30,16 @@ def main_sync(args: argparse.Namespace) -> None:
     logger = get_logger(None)
     policy_mode = cast(Literal["q_table", "brain", "ppo"], args.policy)
     render_mode = None if args.render_mode == "none" else args.render_mode
-    if render_mode is None and args.mode == "local":
-        render_mode = "human"
+    step_delay = args.step_delay
+    if step_delay is None and args.mode == "local" and render_mode == "human":
+        # Default to a readable pace when a human-rendered window is enabled.
+        step_delay = 0.08
+    if step_delay is None:
+        step_delay = 0.0
+
+    reward_file = args.reward_file
+    if reward_file is None:
+        reward_file = f"episode_rewards_{args.env}.json"
 
     config = AgentRuntimeConfig(
         env_id=args.env,
@@ -39,12 +47,22 @@ def main_sync(args: argparse.Namespace) -> None:
         episodes=args.episodes,
         max_steps_per_episode=args.max_steps,
         render_mode=render_mode,
+        reward_output_file=reward_file,
+        step_delay_seconds=max(0.0, step_delay),
+        non_spatial=args.no_spatial,
+        non_temporal=args.no_temporal,
         host=args.host,
         port=args.port,
+        ppo_pretrain_timesteps=args.ppo_pretrain_timesteps,
     )
 
     try:
-        logger.info("Starting %s mode for env %s", args.mode, args.env)
+        logger.info(
+            "Starting %s mode for env %s with policy %s",
+            args.mode,
+            args.env,
+            policy_mode,
+        )
         if policy_mode == "ppo":
             logger.info(
                 "PPO mode selected: runtime will pre-train for %d timesteps before normal execution.",
@@ -132,6 +150,45 @@ if __name__ == "__main__":
         type=str,
         default="none",
         help="Gym render mode for local runs; use 'none' to disable (default: none, local defaults to human)",
+    )
+    parser.add_argument(
+        "--reward-file",
+        type=str,
+        default=None,
+        help=(
+            "Output file for local-run metrics JSON "
+            "(default: episode_rewards_<env>.json in the repo root)"
+        ),
+    )
+    parser.add_argument(
+        "--step-delay",
+        type=float,
+        default=None,
+        help=(
+            "Delay in seconds after each local env step for human-readable playback "
+            "(default: 0.08 for --mode local with --render-mode human, otherwise 0.0)"
+        ),
+    )
+    parser.add_argument(
+        "--no-spatial",
+        action="store_true",
+        default=False,
+        help="Disable Spatial Pooling in the HTM brain (default: spatial enabled)",
+    )
+    parser.add_argument(
+        "--no-temporal",
+        action="store_true",
+        default=False,
+        help="Disable Temporal Memory in the HTM brain (default: temporal enabled)",
+    )
+    parser.add_argument(
+        "--ppo-pretrain-timesteps",
+        type=int,
+        default=defaults.ppo_pretrain_timesteps,
+        help=(
+            "Warm-up timesteps used when --policy ppo is selected "
+            f"(default: {defaults.ppo_pretrain_timesteps})"
+        ),
     )
 
     args = parser.parse_args()

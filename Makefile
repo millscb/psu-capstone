@@ -1,14 +1,6 @@
 exclude=.venv,htmrl_env,.pytest_cache,notebooks,reports,
 
-# SSL Certificate configuration for Zscaler/corporate proxy
-# export SSL_CERT_FILE := $(HOME)/.local/share/ca-certificates/combined-ca-bundle.crt
-export SSL_CERT_FILE := /etc/ssl/certs/ca-certificates.crt
-export UV_NATIVE_TLS := 1
-
-# Ensure Java-based tools (e.g., PlantUML) run without an X11 display
-export JAVA_TOOL_OPTIONS := $(JAVA_TOOL_OPTIONS) -Djava.awt.headless=true
-
-.PHONY: help install format lint puml puml-all clean test update setup-dev setup-uv-windows setup-uv pre-commit env-setup recreate-venv
+.PHONY: help install format lint clean test update setup-dev setup-uv-windows setup-uv pre-commit env-setup recreate-venv
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -40,7 +32,7 @@ install: ## Install package and pre-commit hooks (Unix)
 		uv python install 3.12 && uv python pin 3.12; \
 	fi
 	@uv lock --upgrade
-	@uv sync --all-groups --all-extras
+	@uv sync --all-groups
 	@git rev-parse --git-dir >/dev/null 2>&1 || (echo "⚠️ Git repository not initialized. Initializing..." && git init && git branch -m main && echo "✅ Git repository initialized with main branch")
 	@echo "🔧 Setting up pre-commit hooks..."
 	@uv run --active pre-commit install
@@ -56,12 +48,12 @@ else
 endif
 	@uv python install 3.12
 	@uv python pin 3.12
-	@uv sync --all-groups --all-extras
+	@uv sync --all-groups
 	@echo "✅ Environment recreated"
 
 setup-dev: ## Setup development environment
 	@echo "📚 Installing development dependencies..."
-	@uv sync --all-groups --all-extras
+	@uv sync --all-groups
 	@echo "✅ Development environment ready. Try `make test` to verify everything works"
 
 format: ## Format code with isort and black
@@ -72,18 +64,19 @@ format: ## Format code with isort and black
 
 lint: ## Run linting checks
 	@echo "🔍 Running linting checks..."
-	./lint.sh
+	@uv run --isolated --with flake8 --with flake8-pyproject --with pep8-naming python -m flake8 . --config=.flake8 --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=$(exclude) -v
+	@uv run --isolated --with flake8 --with flake8-pyproject --with pep8-naming python -m flake8 . --config=.flake8 --count --show-source --max-complexity=10 --statistics --exclude=$(exclude)
 	@echo "✅ Linting complete"
 
 lint-docs: ## Check docstring coverage and style
 	@echo "📝 Checking docstring coverage and style..."
-	@PYTHONPATH=$(PWD)/src uv run --active --no-sync pydocstyle src/psu_capstone src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
-	@PYTHONPATH=$(PWD)/src uv run --active --no-sync interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
+	@uv run --active --no-sync pydocstyle src/psu_capstone src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
+	@uv run --active --no-sync interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
 	@echo "✅ Docstring checks complete"
 
 lint-docs-strict: ## Strict docstring validation with pydoclint
 	@echo "📝 Running strict docstring validation..."
-	@uv run --active pydoclint --style=google --exclude='\.venv|tests|build' src/
+	@uv run --with pydoclint --with docstring-parser-fork pydoclint --style=google --exclude='\.venv|tests|build' src/
 	@echo "✅ Strict docstring validation complete"
 
 clean:
@@ -105,7 +98,7 @@ endif
 
 update: ## Update dependencies
 	@echo "🔺 Updating dependencies..."
-	@uv lock --upgrade --trusted-host pypi.org --trusted-host files.pythonhosted.org
+	@uv lock --upgrade
 	@echo "✅ Dependencies updated"
 
 ## In order to run a specific test file or directory, use:

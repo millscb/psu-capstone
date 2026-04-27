@@ -174,12 +174,12 @@ runs:
           "uv")
             # Install dependencies
             if [[ "${{ inputs.install_dev_dependencies }}" == "false" ]]; then
-              uv sync
+              uv sync --active
             else
               if [[ "$dev_groups" == "dev" ]]; then
-                uv sync --dev
+                uv sync --active --dev
               else
-                uv sync $dev_groups
+                uv sync --active $dev_groups
               fi
             fi
 
@@ -289,7 +289,7 @@ runs:
             ;;
 
           "uv")
-            if uv run $pytest_cmd; then
+            if uv run --active $pytest_cmd; then
               echo "status=pass" >> $GITHUB_OUTPUT
               echo "✅ Tests passed"
             else

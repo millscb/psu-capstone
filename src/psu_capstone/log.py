@@ -22,8 +22,51 @@ from typing import Any
 
 logger = logging.getLogger("htmrl")
 _handler = logging.StreamHandler(stream=sys.stdout)
-_formatter = logging.Formatter(fmt="%(levelname)s [%(name)s]: %(message)s")
-_handler.setFormatter(_formatter)
+
+
+class ColorFormatter(logging.Formatter):
+    """Format logs with ANSI colors for terminal readability."""
+
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+
+    LEVEL_COLORS = {
+        logging.DEBUG: "\033[36m",  # cyan
+        logging.INFO: "\033[32m",  # green
+        logging.WARNING: "\033[33m",  # yellow
+        logging.ERROR: "\033[31m",  # red
+        logging.CRITICAL: "\033[41m",  # red background
+    }
+
+    BRAIN_NAME_COLOR = "\033[95m"  # bright magenta
+
+    def __init__(self, use_color: bool = False) -> None:
+        super().__init__(fmt="%(levelname)s [%(name)s]: %(message)s")
+        self._use_color = use_color
+
+    def format(self, record: logging.LogRecord) -> str:
+        if not self._use_color:
+            return super().format(record)
+
+        level_text = record.levelname
+        level_color = self.LEVEL_COLORS.get(record.levelno, "")
+        if level_color:
+            level_text = f"{self.BOLD}{level_color}{record.levelname}{self.RESET}"
+
+        logger_name = record.name
+        if logger_name.endswith(".Brain") or logger_name == "htmrl.Brain":
+            logger_name = f"{self.BOLD}{self.BRAIN_NAME_COLOR}{record.name}{self.RESET}"
+
+        message = record.getMessage()
+        return f"{level_text} [{logger_name}]: {message}"
+
+
+_force_color = os.environ.get("HTMRL_COLOR", "").strip() in {"1", "true", "TRUE", "yes", "YES"}
+_disable_color = os.environ.get("NO_COLOR") is not None
+_stream_supports_color = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+_use_color = (_stream_supports_color or _force_color) and not _disable_color
+
+_handler.setFormatter(ColorFormatter(use_color=_use_color))
 
 if not logger.handlers:
     logger.addHandler(_handler)
