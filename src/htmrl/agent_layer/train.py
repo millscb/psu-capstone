@@ -18,9 +18,9 @@ from typing import Any, cast
 import numpy as np
 
 import htmrl.encoder_layer as el
+from htmrl.agent_layer.HTM import ColumnField, InputField, OutputField
+from htmrl.agent_layer.brain import Brain
 from htmrl.agent_layer.pullin.field_base import Field
-from htmrl.agent_layer.pullin.pullin_brain import Brain
-from htmrl.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
 from htmrl.agent_layer.pullin.sungur import ValueField
 from htmrl.encoder_layer.base_encoder import ParameterMarker
 from htmrl.encoder_layer.encoder_factory import EncoderFactory
@@ -310,6 +310,7 @@ class Trainer:
             encoder_param_types = (
                 RDSEParameters,
                 CategoryParameters,
+                ScalarEncoderParameters,
                 DateEncoderParameters,
                 FourierEncoderParameters,
                 GeospatialParameters,
@@ -334,27 +335,12 @@ class Trainer:
                 field = InputField(size=size, encoder_params=encoder_params)
                 field.name = name
             elif name.endswith("_output"):
-                # Use the first input field as the input_field for OutputField by default
-                if not self._trainer_input_fields:
-                    raise ValueError(
-                        "At least one input field must be defined before creating an OutputField."
-                    )
-                input_field = self._trainer_input_fields[0]
-                field = OutputField(
-                    input_field=input_field, encoder_params=encoder_params, size=size
-                )
-                field.name = name
-                # Register all possible actions with the encoder for OutputField
                 if possible_actions is not None:
-                    encoder = getattr(field, "encoder", None)
-                    if encoder is not None:
-                        for action in possible_actions:
-                            try:
-                                encoder.register_encoding(action)
-                            except Exception as e:
-                                self.logger.warning(
-                                    f"Failed to register action {action} with OutputField encoder: {e}"
-                                )
+                    motor_action = tuple(possible_actions)
+                else:
+                    motor_action = (None,)
+                field = OutputField(size=size, motor_action=motor_action)
+                field.name = name
             else:
                 raise ValueError("Unsupported field type: {}".format(name))
 
@@ -367,9 +353,9 @@ class Trainer:
         """Setup the ColumnField for the Brain."""
         column_field = ColumnField(
             input_fields=self._trainer_input_fields,
-            non_spatial=True,
+            non_spatial=False,
             num_columns=num_columns,
-            cells_per_column=1,
+            cells_per_column=cells_per_column,
         )
         column_field.name = "Column_Field"
         self._trainer_column_fields.append(column_field)
@@ -536,7 +522,12 @@ class Trainer:
             raise ValueError("Input field name must end with '_input'.")
 
     def add_output_field(
-        self, name: str, size: int, encoder_params: Any, possible_actions: list[Any] | None = None
+        self,
+        name: str,
+        size: int,
+        encoder_params: Any | None = None,
+        possible_actions: list[Any] | None = None,
+        motor_action: tuple[Any, ...] | None = None,
     ) -> None:
         """Add an output field to the Brain using the new OutputField signature."""
 
@@ -548,23 +539,13 @@ class Trainer:
                 raise ValueError(
                     "At least one input field must be defined before creating an OutputField."
                 )
-            input_field = self._trainer_input_fields[0]
-            # Support both OutputField signatures used in this repository:
-            # - New: OutputField(input_field=..., encoder_params=..., size=...)
-            # - Legacy: OutputField(size=..., motor_action=...)
-            field = OutputField(input_field=input_field, encoder_params=encoder_params, size=size)
+            if motor_action is None:
+                if possible_actions is not None:
+                    motor_action = tuple(possible_actions)
+                else:
+                    motor_action = (None,)
+            field = OutputField(size=size, motor_action=motor_action)
             field.name = name
-            # Register all possible actions with the encoder for OutputField
-            if possible_actions is not None:
-                encoder = getattr(field, "encoder", None)
-                if encoder is not None:
-                    for action in possible_actions:
-                        try:
-                            encoder.register_encoding(action)
-                        except Exception as e:
-                            self.logger.warning(
-                                f"Failed to register action {action} with OutputField encoder: {e}"
-                            )
             self._trainer_output_fields.append(field)
             self._main_brain.fields[name] = field
         else:
@@ -671,7 +652,16 @@ class Trainer:
         if not isinstance(dataset, dict) or not dataset:
             raise ValueError("Dataset must be a non-empty dict mapping field names to data.")
 
-        steps = steps or min(len(values) for values in dataset.values())
+        for field_name, series in dataset.items():
+            if not isinstance(series, list):
+                raise ValueError(f"Dataset series for '{field_name}' must be a list.")
+            if len(series) == 0:
+                raise ValueError(f"Dataset contains empty series for field '{field_name}'.")
+
+        if steps is None:
+            steps = min(len(values) for values in dataset.values())
+        elif steps < 0:
+            raise ValueError("steps must be >= 0.")
         field_errors: dict[str, list[float]] = {name: [] for name in dataset}
         prediction_failures: dict[str, int] = dict.fromkeys(dataset, 0)
         evaluation_bursts: list[int] = []
