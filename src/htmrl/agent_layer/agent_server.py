@@ -421,6 +421,59 @@ class AgentWebSocketServer:
         else:
             return str(value)
 
+    def _build_trading_visualization(
+        self,
+        obs: Any,
+        action: Any,
+        reward: float,
+        total_reward: float,
+        brain_outputs: dict[str, Any],
+        step: int,
+    ) -> dict[str, Any] | None:
+        """Build a compact trading visualization payload for OHLCV observations.
+
+        Returns ``None`` when the observation doesn't look like an OHLCV trading
+        frame (used by non-trading environments).
+        """
+        required_keys = {"open", "high", "low", "close", "volume"}
+        if not isinstance(obs, dict) or not required_keys.issubset(obs.keys()):
+            return None
+
+        close_price = float(obs["close"])
+        open_price = float(obs["open"])
+        price_delta = close_price - open_price
+
+        action_value = int(action)
+        action_labels = {0: "hold", 1: "buy", 2: "sell"}
+        label = action_labels.get(action_value, "unknown")
+
+        expected_action = 0
+        if price_delta > 0:
+            expected_action = 1
+        elif price_delta < 0:
+            expected_action = 2
+
+        alignment_score = 1.0 if action_value == expected_action else 0.0
+        quality = "good" if alignment_score >= 1.0 else "poor"
+
+        action_output = brain_outputs.get("action_output", {})
+        brain_confidence = (
+            float(action_output.get("confidence", 0.0))
+            if isinstance(action_output, dict)
+            else 0.0
+        )
+
+        return {
+            "step": int(step),
+            "reward": float(reward),
+            "total_reward": float(total_reward),
+            "ohlcv": {k: float(obs[k]) for k in ("open", "high", "low", "close", "volume")},
+            "action": {"value": action_value, "label": label},
+            "alignment_score": alignment_score,
+            "quality": quality,
+            "brain_confidence": brain_confidence,
+        }
+
     async def start(self) -> None:
         """Start the WebSocket server and run forever."""
         self._logger.info(f"Starting WebSocket server on ws://{self._host}:{self._port}")
