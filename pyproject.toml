@@ -1,12 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [project]
-name = "psu-capstone"
-version = "0.0.1"
+name = "htmrl"
+version = "0.9.0"
 authors = [
     { name = "PSU Capstone Team" },
 ]
 description = "PSU Capstone Project"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -22,7 +29,6 @@ dependencies = [
  "xlrd>=2.0.2",
  "pyproj>=3.7.1",
  "scipy>=1.15.3",
- "htm",
  "gymnasium>=1.2.3",
  "stable-baselines3>=2.7.1",
  "torch>=2.11.0",
@@ -59,7 +65,7 @@ formatters = ["black>=23.7.0", "isort>=6.0.1"]
 
 
 [project.scripts]
-psu-capstone = "psu_capstone:main"
+psu-capstone = "htmrl:main"
 
 [tool.uv]
 # package = true  # Disabled for offline environments

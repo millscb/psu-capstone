@@ -28,9 +28,8 @@ back to interpretable datetime values, enabling HTM predictions of temporal patt
 from datetime import datetime
 
 import pytest
-
-from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
-from psu_capstone.log import logger
+from htmrl.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+from htmrl.log import logger
 
 pytest_plugins = ["tests.config_test"]
 

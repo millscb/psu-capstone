@@ -4,15 +4,15 @@
 
 import pytest
 
-from psu_capstone.encoder_layer.base_encoder import ParameterMarker
-from psu_capstone.encoder_layer.category_encoder import CategoryParameters
-from psu_capstone.encoder_layer.coordinate_encoder import CoordinateParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoderParameters
-from psu_capstone.encoder_layer.delta_encoder import DeltaEncoderParameters
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoderParameters
-from psu_capstone.encoder_layer.geospatial_encoder import GeospatialParameters
-from psu_capstone.encoder_layer.rdse import RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoderParameters
+from htmrl.encoder_layer.base_encoder import ParameterMarker
+from htmrl.encoder_layer.category_encoder import CategoryParameters
+from htmrl.encoder_layer.coordinate_encoder import CoordinateParameters
+from htmrl.encoder_layer.date_encoder import DateEncoderParameters
+from htmrl.encoder_layer.delta_encoder import DeltaEncoderParameters
+from htmrl.encoder_layer.fourier_encoder import FourierEncoderParameters
+from htmrl.encoder_layer.geospatial_encoder import GeospatialParameters
+from htmrl.encoder_layer.rdse import RDSEParameters
+from htmrl.encoder_layer.scalar_encoder import ScalarEncoderParameters
 
 
 @pytest.mark.parametrize(

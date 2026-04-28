@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from psu_capstone.agent_layer.cartpole_brain_training import (
+from htmrl.agent_layer.cartpole_brain_training import (
     CartPoleTrainingConfig,
     train_cartpole_brain_policy,
 )

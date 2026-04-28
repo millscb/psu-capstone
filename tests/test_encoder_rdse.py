@@ -33,7 +33,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
 @pytest.fixture

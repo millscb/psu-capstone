@@ -30,12 +30,12 @@ Tests validate:
   5. Reset functionality clears state
 """
 
-from psu_capstone.agent_layer.pullin.pullin_htm import InputField
-from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from htmrl.agent_layer.HTM import InputField
+from htmrl.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
+from htmrl.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+from htmrl.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
+from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from htmrl.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 
 """++++++++++Input Field Testing++++++++++"""
 

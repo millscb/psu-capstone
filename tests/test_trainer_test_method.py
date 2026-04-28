@@ -3,9 +3,8 @@
 from types import SimpleNamespace
 
 import pytest
-
-from psu_capstone.agent_layer.pullin.pullin_brain import Brain
-from psu_capstone.agent_layer.train import Trainer
+from htmrl.agent_layer.pullin.pullin_brain import Brain
+from htmrl.agent_layer.train import Trainer
 
 
 class _FakeBrain:

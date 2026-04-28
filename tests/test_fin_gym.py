@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from psu_capstone.environment.fin_gym import FinGym
+from htmrl.environment.fin_gym import FinGym
 
 
 # Test Type: unit test

@@ -3,8 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
-from psu_capstone.input_layer.input_handler import InputHandler
+from htmrl.encoder_layer.encoder_factory import EncoderFactory
+from htmrl.input_layer.input_handler import InputHandler
 
 
 def fourier_helper():

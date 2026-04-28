@@ -28,8 +28,8 @@ Tests validate:
 import numpy as np
 import pytest
 
-from psu_capstone.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
-from utils import hamming_distance, overlap
+from htmrl.encoder_layer.fourier_encoder import FourierEncoder, FourierEncoderParameters
+from htmrl.utils import hamming_distance, overlap
 
 _SIGNAL_LENGTH = 2048
 
@@ -199,12 +199,9 @@ def test_composite_signal_retains_component_information() -> None:
 
 # Test Type: unit test
 def test_amplitude_modulation_preserves_carrier_bits_more_than_modulator() -> None:
-    # TS-12 TC-085
     """
     Amplitude modulation generates the sum and difference frequencies.
     Carrier freq and modulator will be dimished near zero in the fft.
-
-    TC-085: AM signals should preserve more carrier bits than modulator bits.
     """
 
     # Arrange

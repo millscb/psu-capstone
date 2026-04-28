@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from psu_capstone.encoder_layer.base_encoder import BaseEncoder
-from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.sdr_layer.sdr import SDR
+from htmrl.encoder_layer.base_encoder import BaseEncoder
+from htmrl.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from htmrl.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from htmrl.sdr_layer.sdr import SDR
 
 if __name__ == "__main__":
 

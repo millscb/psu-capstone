@@ -17,12 +17,9 @@ SDR encoding, ensuring data integrity across component boundaries.
 import numpy as np
 import pytest
 
-from psu_capstone.agent_layer.pullin.pullin_brain import Brain
-from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField
-from psu_capstone.encoder_layer.rdse import RDSEParameters
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
-from psu_capstone.input_layer.input_interface import InputInterface
+from htmrl.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
+from htmrl.input_layer.input_handler import InputHandler
+from htmrl.input_layer.input_interface import InputInterface
 
 
 @pytest.fixture

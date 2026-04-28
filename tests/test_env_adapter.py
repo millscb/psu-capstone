@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from psu_capstone.environment.env_adapter import EnvAdapter
-from psu_capstone.environment.fin_gym import FinGym
+from htmrl.environment.env_adapter import EnvAdapter
+from htmrl.environment.fin_gym import FinGym
 
 
 def test_env_adapter_accepts_instantiated_fingym() -> None:

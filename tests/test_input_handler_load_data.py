@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 from openpyxl import Workbook
 
-from psu_capstone.input_layer.input_handler import InputHandler
+from htmrl.input_layer.input_handler import InputHandler
 
 
 @pytest.fixture
