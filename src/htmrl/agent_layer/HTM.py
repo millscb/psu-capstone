@@ -642,7 +642,8 @@ class ColumnField(Field):
         """Activate the top-k columns based on overlap.
 
         If there are ties at the lowest overlap value in top-k,
-        randomly select among the tied columns to meet exactly k.
+        prefer columns with lower active duty cycle to avoid repeatedly
+        selecting the same tied columns.
         """
         sorted_columns = sorted(self.columns, key=lambda col: col.overlap, reverse=True)
 
@@ -664,10 +665,13 @@ class ColumnField(Field):
             self.active_columns.append(col)
             col.set_active()
 
-        # Randomly select from tied columns to fill remaining spots
+        # Select from tied columns by lowest duty cycle to improve usage balance
         remaining_spots = k - len(above_threshold)
         if remaining_spots > 0 and at_threshold:
-            selected = at_threshold[:remaining_spots]
+            selected = sorted(
+                at_threshold,
+                key=lambda col: col.active_duty_cycle,
+            )[:remaining_spots]
             for col in selected:
                 self.active_columns.append(col)
                 col.set_active()
