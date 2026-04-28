@@ -35,6 +35,7 @@ dependencies = [
  "pygame>=2.6.1",
  "gym-trading-env>=0.3.5",
  "box2d>=2.3.10",
+ "websockets>=16.0",
 ]
 
 [project.optional-dependencies]
