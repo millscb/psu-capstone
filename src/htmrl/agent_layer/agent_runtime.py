@@ -277,8 +277,11 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
     adapter_kwargs: dict[str, Any] = {}
     if config.render_mode is not None:
         adapter_kwargs["render_mode"] = config.render_mode
+    # Map legacy frontend alias to the real Gymnasium id used by gym_trading_env.
+    env_id = "TradingEnv" if config.env_id == "gym_trading_env" else config.env_id
+
     # Special handling for TradingEnv: provide a default DataFrame
-    if config.env_id == "TradingEnv":
+    if env_id == "TradingEnv":
         if gym_trading_env is None:
             raise ModuleNotFoundError(
                 "TradingEnv requires optional dependency 'gym_trading_env'. "
@@ -309,7 +312,7 @@ def build_adapter(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> tu
             }
         )
 
-    return EnvAdapter(config.env_id, **adapter_kwargs), False
+    return EnvAdapter(env_id, **adapter_kwargs), False
 
 
 def build_runtime(config: AgentRuntimeConfig, *, allow_frontend_env: bool) -> AgentRuntime:
