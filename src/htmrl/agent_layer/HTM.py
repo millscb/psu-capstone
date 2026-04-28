@@ -842,19 +842,24 @@ class InputField(Field):
     managing a Field of cells corresponding to the encoder's output bits.
 
     Args:
-        encoder_params: Configuration parameters for the encoder. If None
-            or not a ParameterMarker-compatible object, defaults to RDSEParameters.
+        encoder_params: Configuration parameters for the encoder. If None,
+            defaults to RDSEParameters. Must inherit from ParameterMarker.
         size: Optional size override for the encoder output. If provided,
-            overrides the size parameter in encoder_params.
+            overrides the size parameter in encoder_params and must be > 0.
     """
 
     def __init__(self, encoder_params: Any | None = None, size: int | None = None) -> None:
-        if encoder_params is not None and isinstance(encoder_params, ParameterMarker):
+        if encoder_params is None:
+            params = RDSEParameters()
+        elif isinstance(encoder_params, ParameterMarker):
             params = copy.deepcopy(encoder_params)
         else:
-            params = RDSEParameters()
+            raise TypeError("encoder_params must inherit from ParameterMarker or be None.")
 
-        if size is not None and hasattr(params, "size") and size > 0:
+        if size is not None and size <= 0:
+            raise ValueError("size must be greater than 0.")
+
+        if size is not None and hasattr(params, "size"):
             params.size = size
 
         self._encoder = params.encoder_class(params)  # type: ignore
