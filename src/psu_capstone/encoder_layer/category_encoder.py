@@ -164,7 +164,7 @@ class CategoryParameters:
 
     size: int = 2048
     w: int = 3
-    category_list: list[str] = field(default_factory=list)
+    category_list: list[str] = field(default_factory=lambda: ["NA"])
     rdse_used: bool = True
     encoder_class = CategoryEncoder
 
