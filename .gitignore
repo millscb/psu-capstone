@@ -235,3 +235,6 @@ condaenv.iw4wefqq.requirements.txt
 
 # Integration test documentation (local only)
 tests/integration/README.md
+
+# Generated API docs output
+docs/psu_capstone/
