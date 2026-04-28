@@ -197,7 +197,7 @@ class CategoryParametersNew:
     active_bits_per_category: int = 0
     sparsity: float = 0.02
     size: int = 2048
-    category_list: list[str] = field(default_factory=list)
+    category_list: list[str] = field(default_factory=lambda: ["NA"])
     rdse_used: bool = True
     encoder_class = CategoryEncoderNew
 
