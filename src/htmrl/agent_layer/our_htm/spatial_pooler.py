@@ -1,7 +1,5 @@
-"""Legacy import path shim for SpatialPooler."""
+"""Backward-compatible import path for :class:`SpatialPooler`."""
 
-from htmrl.agent_layer.our_htm.cell import Cell
-from htmrl.agent_layer.our_htm.column import Column
-from htmrl.agent_layer.our_htm.synapse import Synapse
+from htmrl.agent_layer.our_htm_new.spatial_pooler import SpatialPooler
 
 __all__ = ["SpatialPooler"]
