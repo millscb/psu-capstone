@@ -25,8 +25,7 @@ Validation Points:
 """
 
 import pytest
-
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 
 # Test Type: unit test

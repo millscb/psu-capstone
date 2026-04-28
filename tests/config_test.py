@@ -4,10 +4,9 @@ from datetime import datetime
 from typing import Any
 
 import pytest
-
-from psu_capstone.encoder_layer.category_encoder import CategoryParameters
-from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
-from psu_capstone.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
+from htmrl.encoder_layer.category_encoder import CategoryParameters
+from htmrl.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 # ============================================================================
 # DateEncoder Fixtures

@@ -22,15 +22,14 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import grapher
-
 # Import each layer once so the demos read like the architecture they exercise.
 # This keeps example code focused on workflow rather than repeated module paths.
-import psu_capstone.agent_layer as ag
-import psu_capstone.encoder_layer as en
-import psu_capstone.input_layer as il
-from psu_capstone.log import logger
-from utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
+import htmrl.agent_layer as ag
+import htmrl.encoder_layer as en
+import htmrl.grapher as grapher
+import htmrl.input_layer as il
+from htmrl.log import logger
+from htmrl.utils import DATA_PATH, PROJECT_ROOT, hamming_distance, overlap
 
 ESD = os.path.join(DATA_PATH, "concat_ESData.xlsx")
 REC_CENTER = os.path.join(DATA_PATH, "rec_center.csv")
@@ -218,7 +217,7 @@ def sine_wave_demo(steps: int = 100) -> None:
 
     column = {"sine_wave_input": y.tolist()}
 
-    trainer.train_column(brain, column, steps)
+    trainer.train_column(column, steps, brain)
 
     # show predicted vs actual values for the last 100 steps
     test_results = trainer.test(brain, column, steps)

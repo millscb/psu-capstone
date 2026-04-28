@@ -1,4 +1,4 @@
 import numpy as np
 import pytest
 
-from psu_capstone.agent_layer.our_htm.spatial_pooler import SpatialPooler
+from htmrl.agent_layer.our_htm.spatial_pooler import SpatialPooler

@@ -19,8 +19,7 @@ interpretable category values.
 """
 
 import pytest
-
-from psu_capstone.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
+from htmrl.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 
 
 @pytest.fixture

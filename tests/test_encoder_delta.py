@@ -1,8 +1,7 @@
 """Regression tests for DeltaEncoder parameter contract behavior."""
 
 import pytest
-
-from psu_capstone.encoder_layer.delta_encoder import DeltaEncoder, DeltaEncoderParameters
+from htmrl.encoder_layer.delta_encoder import DeltaEncoder, DeltaEncoderParameters
 
 
 # Test Type: unit test

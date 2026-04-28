@@ -330,7 +330,7 @@ class TemporalMemory:
 if __name__ == "__main__":
     from typing import Any, cast
 
-    from psu_capstone.agent_layer.htm.spatial_pooler import SpatialPooler
+    from htmrl.agent_layer.htm.spatial_pooler import SpatialPooler
 
     # Create a simple SP and TM
     input_size = 20

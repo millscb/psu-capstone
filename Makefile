@@ -70,8 +70,8 @@ lint: ## Run linting checks
 
 lint-docs: ## Check docstring coverage and style
 	@echo "📝 Checking docstring coverage and style..."
-	@uv run --active --no-sync pydocstyle src/psu_capstone src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
-	@uv run --active --no-sync interrogate -vv src/psu_capstone src/utils.py src/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
+	@uv run --active --no-sync pydocstyle src/htmrl src/utils.py --convention=google --add-ignore=D100,D104,D105,D107 || echo "⚠️ Found docstring style issues"
+	@uv run --active --no-sync interrogate -vv src/htmrl src/htmrl/utils.py src/htmrl/grapher.py --fail-under=80 --ignore-init-method --ignore-magic --exclude tests
 	@echo "✅ Docstring checks complete"
 
 lint-docs-strict: ## Strict docstring validation with pydoclint

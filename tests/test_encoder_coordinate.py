@@ -24,7 +24,7 @@ These tests validate spatial encoding for location-based learning tasks,
 enabling HTM systems to learn spatial patterns and sequences.
 """
 
-from psu_capstone.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
+from htmrl.encoder_layer.coordinate_encoder import CoordinateEncoder, CoordinateParameters
 
 
 # Test Type: unit test

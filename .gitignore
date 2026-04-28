@@ -170,7 +170,6 @@ celerybeat.pid
 #.flake8
 
 
-
 # Spyder project settings
 .spyderproject
 .spyproject

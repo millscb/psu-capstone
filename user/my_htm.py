@@ -23,12 +23,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # Keep this script runnable from the repo root without installing the package.
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from psu_capstone.agent_layer.agent import Agent  # noqa: E402
-from psu_capstone.agent_layer.agent_runtime import AgentRuntimeConfig  # noqa: E402
-from psu_capstone.agent_layer.pullin.pullin_brain import Brain  # noqa: E402
-from psu_capstone.agent_layer.train import Trainer  # noqa: E402
-from psu_capstone.environment.env_adapter import EnvAdapter  # noqa: E402
-from psu_capstone.input_layer.input_handler import InputHandler  # noqa: E402
+from htmrl.agent_layer.agent import Agent  # noqa: E402
+from htmrl.agent_layer.agent_runtime import AgentRuntimeConfig  # noqa: E402
+from htmrl.agent_layer.pullin.pullin_brain import Brain  # noqa: E402
+from htmrl.agent_layer.train import Trainer  # noqa: E402
+from htmrl.environment.env_adapter import EnvAdapter  # noqa: E402
+from htmrl.input_layer.input_handler import InputHandler  # noqa: E402
 
 
 def _normalize_market_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:

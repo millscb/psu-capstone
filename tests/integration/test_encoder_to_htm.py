@@ -16,9 +16,12 @@ These tests validate the critical pipeline connection from input processing thro
 SDR encoding that feeds into the HTM temporal memory engine.
 """
 
-from psu_capstone.agent_layer.HTM import InputField
-from psu_capstone.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
-from psu_capstone.input_layer.input_handler import InputHandler
+from typing import Any
+
+import pytest
+
+from htmrl.encoder_layer.base_encoder import BaseEncoder
+from htmrl.input_layer.input_handler import InputHandler
 
 
 def test_encoder_to_htm_receives_sdr_object():

@@ -28,7 +28,7 @@ Tests validate:
 import numpy as np
 import pytest
 
-from psu_capstone.encoder_layer.category_encoder_new import (
+from htmrl.encoder_layer.category_encoder_new import (
     CategoryEncoderNew,
     CategoryParametersNew,
 )

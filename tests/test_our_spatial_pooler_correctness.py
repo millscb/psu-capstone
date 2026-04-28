@@ -3,9 +3,9 @@ import random
 import numpy as np
 import pytest
 
-from psu_capstone.agent_layer.our_htm_new.column import Column
-from psu_capstone.agent_layer.our_htm_new.spatial_pooler import SpatialPooler
-from psu_capstone.encoder_layer import RandomDistributedScalarEncoder, RDSEParameters
+from htmrl.agent_layer.our_htm.column import Column
+from htmrl.agent_layer.our_htm.spatial_pooler import SpatialPooler
+from htmrl.encoder_layer import RandomDistributedScalarEncoder, RDSEParameters
 
 
 def make_spatial_pooler(

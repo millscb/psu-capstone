@@ -1,7 +1,6 @@
 [flake8]
 ignore = W291, E501, C901, W503, E203, E266, E402, E722, F401, F403, F821
 max-line-length = 300
-pythonpath = src
 
 exclude =
     .github,
@@ -18,8 +17,6 @@ exclude =
     ./README.md,
     build,
     __pycache__,
-    ./tests,
-    
     
 
 

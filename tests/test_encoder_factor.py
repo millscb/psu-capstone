@@ -4,8 +4,8 @@
 
 import pytest
 
-import psu_capstone.encoder_layer as el
-from psu_capstone.encoder_layer.encoder_factory import EncoderFactory
+import htmrl.encoder_layer as el
+from htmrl.encoder_layer.encoder_factory import EncoderFactory
 
 
 # TS-21 TC-173

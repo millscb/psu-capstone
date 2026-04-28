@@ -1,4 +1,4 @@
-#!/home/millscb/repos/psu-capstone/.venv/bin/python3
+#!/usr/bin/env python3
 """Run the agent WebSocket server for real-time visualization.
 
 Branch behavior summary:
@@ -16,12 +16,12 @@ from typing import Literal, cast
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from psu_capstone.agent_layer.agent_runtime import (  # noqa: E402
+from htmrl.agent_layer.agent_runtime import (  # noqa: E402
     AgentRuntimeConfig,
     run_local_session,
     run_server,
 )
-from psu_capstone.log import get_logger  # noqa: E402
+from htmrl.log import get_logger  # noqa: E402
 
 
 def main_sync(args: argparse.Namespace) -> None:

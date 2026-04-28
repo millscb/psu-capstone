@@ -10,11 +10,11 @@ import gymnasium as gym
 import numpy as np
 import pytest
 
-from psu_capstone.agent_layer.agent import Agent
-from psu_capstone.agent_layer.brain import Brain
-from psu_capstone.agent_layer.HTM import ColumnField, InputField, OutputField
-from psu_capstone.encoder_layer.rdse import RDSEParameters
-from psu_capstone.environment.env_adapter import EnvAdapter
+from htmrl.agent_layer.agent import Agent
+from htmrl.agent_layer.brain import Brain
+from htmrl.agent_layer.HTM import ColumnField, InputField, OutputField
+from htmrl.encoder_layer.rdse import RDSEParameters
+from htmrl.environment.env_adapter import EnvAdapter
 
 
 class _AdapterStub(EnvAdapter):

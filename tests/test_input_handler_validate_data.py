@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from psu_capstone.input_layer.input_handler import InputHandler
+from htmrl.input_layer.input_handler import InputHandler
 
 
 @pytest.fixture

@@ -24,9 +24,9 @@ Tests validate:
   5. Multi-field coordination
 """
 
-from psu_capstone.agent_layer.pullin.pullin_brain import Brain
-from psu_capstone.agent_layer.pullin.pullin_htm import ColumnField, InputField, OutputField
-from psu_capstone.encoder_layer.rdse import RDSEParameters
+from htmrl.agent_layer.brain import Brain
+from htmrl.agent_layer.HTM import ColumnField, InputField, OutputField
+from htmrl.encoder_layer.rdse import RDSEParameters
 
 
 def create_brain_helper_multi_field() -> Brain:

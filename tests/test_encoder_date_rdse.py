@@ -35,7 +35,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from psu_capstone.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
+from htmrl.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 
 pytest_plugins = ["tests.config_test"]
 
