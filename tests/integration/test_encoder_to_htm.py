@@ -20,7 +20,8 @@ from typing import Any
 
 import pytest
 
-from htmrl.encoder_layer.base_encoder import BaseEncoder
+from htmrl.agent_layer.HTM import InputField
+from htmrl.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from htmrl.input_layer.input_handler import InputHandler
 
 
