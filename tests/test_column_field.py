@@ -1427,8 +1427,8 @@ def test_stability_without_training():
     stability, _ = compute_stability(cf, test_inputs, prev_activations)
 
     assert (
-        stability <= 0.04
-    ), f"Stability should be close to 0 without intervening training, got {stability:.3f}"
+        stability >= 0.85
+    ), f"Stability should remain high without intervening training, got {stability:.3f}"
 
 
 # Test Type: unit test
