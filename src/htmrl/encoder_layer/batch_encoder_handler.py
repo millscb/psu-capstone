@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 import numpy as np
+
 from htmrl.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 from htmrl.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters

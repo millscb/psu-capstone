@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 
 from htmrl.encoder_layer.base_encoder import BaseEncoder
+from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 # from legacy.sdr_layer.sdr import SDR
 

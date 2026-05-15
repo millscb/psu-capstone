@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 import pytest
+
 from htmrl.agent_layer.pullin.pullin_brain import Brain
 from htmrl.agent_layer.train import Trainer
 

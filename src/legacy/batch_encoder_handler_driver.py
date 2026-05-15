@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
-from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder
+from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 from htmrl.input_layer.improved_input_handler import InputHandler
 
 warnings.simplefilter(action="ignore", category=FutureWarning)

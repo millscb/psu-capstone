@@ -4,10 +4,10 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
+
 from htmrl.agent_layer.agent_server import AgentWebSocketServer
 from htmrl.agent_layer.pullin.pullin_brain import Brain
 from htmrl.agent_layer.train import Trainer
-
 from htmrl.environment.frontend_env_adapter import FrontendEnvAdapter
 
 pytest.importorskip("websockets")

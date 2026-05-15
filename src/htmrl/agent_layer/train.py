@@ -18,8 +18,8 @@ from typing import Any, cast
 import numpy as np
 
 import htmrl.encoder_layer as el
-from htmrl.agent_layer.HTM import ColumnField, InputField, OutputField
 from htmrl.agent_layer.brain import Brain
+from htmrl.agent_layer.HTM import ColumnField, InputField, OutputField
 from htmrl.agent_layer.pullin.field_base import Field
 from htmrl.agent_layer.pullin.sungur import ValueField
 from htmrl.encoder_layer.base_encoder import ParameterMarker

@@ -28,6 +28,7 @@ back to interpretable datetime values, enabling HTM predictions of temporal patt
 from datetime import datetime
 
 import pytest
+
 from htmrl.encoder_layer.date_encoder import DateEncoder, DateEncoderParameters
 from htmrl.log import logger
 

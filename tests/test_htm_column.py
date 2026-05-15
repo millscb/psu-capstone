@@ -28,7 +28,7 @@ Tests validate:
   5. Inhibition and activation computation
 """
 
-from htmrl.agent_layer import HTM
+from htmrl.agent_layer import HTM, pullin_htm
 from htmrl.agent_layer.HTM import Column, InputField, OutputField, ProximalSynapse
 from htmrl.encoder_layer.rdse import RDSEParameters
 

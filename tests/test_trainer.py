@@ -50,39 +50,6 @@ def _learned_htm_snapshot(brain: Brain) -> tuple[int, float, int, float]:
     )
 
 
-def _learned_htm_snapshot(brain: Brain) -> tuple[int, float, int, float]:
-    """Summarize HTM weights so save/load can be checked for true learning state.
-
-    Returns:
-        (connected_proximal_synapses, sum_proximal_permanence, distal_segment_count,
-         sum_distal_permanence)
-    """
-
-    prox_connected = 0
-    prox_perm_sum = 0.0
-    distal_segments = 0
-    distal_perm_sum = 0.0
-
-    for cf in brain.column_fields:
-        for column in cf.columns:
-            for syn in column.potential_synapses:
-                prox_perm_sum += syn.permanence
-                if syn.permanence >= CONNECTED_PERM:
-                    prox_connected += 1
-        for cell in cf.cells:
-            for seg in cell.segments:
-                distal_segments += 1
-                for syn in seg.synapses:
-                    distal_perm_sum += syn.permanence
-
-    return (
-        prox_connected,
-        round(prox_perm_sum, 9),
-        distal_segments,
-        round(distal_perm_sum, 9),
-    )
-
-
 @pytest.fixture
 def trainer():
     brain = Brain()

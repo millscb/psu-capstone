@@ -458,9 +458,7 @@ class AgentWebSocketServer:
 
         action_output = brain_outputs.get("action_output", {})
         brain_confidence = (
-            float(action_output.get("confidence", 0.0))
-            if isinstance(action_output, dict)
-            else 0.0
+            float(action_output.get("confidence", 0.0)) if isinstance(action_output, dict) else 0.0
         )
 
         return {

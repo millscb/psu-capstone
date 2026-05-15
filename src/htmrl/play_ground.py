@@ -5,6 +5,7 @@ computing Hamming distance and overlap metrics between SDRs.
 """
 
 import numpy as np
+
 from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 

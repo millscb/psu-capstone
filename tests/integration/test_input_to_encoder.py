@@ -17,8 +17,8 @@ SDR encoding, ensuring data integrity across component boundaries.
 import numpy as np
 import pytest
 
-from htmrl.agent_layer.HTM import ColumnField, InputField
 from htmrl.agent_layer.brain import Brain
+from htmrl.agent_layer.HTM import ColumnField, InputField
 from htmrl.encoder_layer.rdse import RDSEParameters
 from htmrl.encoder_layer.scalar_encoder import ScalarEncoder, ScalarEncoderParameters
 from htmrl.input_layer.input_handler import InputHandler

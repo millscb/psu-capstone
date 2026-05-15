@@ -1,6 +1,7 @@
 # Test Suite: TS-16 (HTM)
 
 import pytest
+
 from htmrl.agent_layer.pullin.pullin_htm import (
     CONNECTED_PERM,
     Cell,

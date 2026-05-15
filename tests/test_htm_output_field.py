@@ -23,7 +23,7 @@ Tests validate:
   5. Multi-field motor coordination
 """
 
-from htmrl.agent_layer.HTM import OutputField
+from htmrl.agent_layer.HTM import InputField, OutputField
 
 """++++++++++Output Field Testing++++++++++"""
 

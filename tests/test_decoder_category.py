@@ -19,6 +19,7 @@ interpretable category values.
 """
 
 import pytest
+
 from htmrl.encoder_layer.category_encoder import CategoryEncoder, CategoryParameters
 
 

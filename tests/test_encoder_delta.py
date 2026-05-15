@@ -1,6 +1,7 @@
 """Regression tests for DeltaEncoder parameter contract behavior."""
 
 import pytest
+
 from htmrl.encoder_layer.delta_encoder import DeltaEncoder, DeltaEncoderParameters
 
 

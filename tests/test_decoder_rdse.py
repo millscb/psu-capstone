@@ -25,6 +25,7 @@ Validation Points:
 """
 
 import pytest
+
 from htmrl.encoder_layer.rdse import RandomDistributedScalarEncoder, RDSEParameters
 
 

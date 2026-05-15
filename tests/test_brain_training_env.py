@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import pytest
+
 from htmrl.agent_layer.agent_runtime import FRONTEND_ENV_SPECS
 from htmrl.agent_layer.brain_training_helper import (
     EnvTrainingConfig,
